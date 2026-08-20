@@ -1,0 +1,83 @@
+name: Daily S&P 500 Screener
+
+on:
+  schedule:
+    - cron: "30 7 * * 1-5"
+      timezone: "Asia/Tokyo"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-sp500-screener
+  cancel-in-progress: false
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: .cache_sp500_screener
+          key: screener-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            screener-${{ runner.os }}-
+
+      - name: Validate SEC user agent
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          if [ -z "$SEC_USER_AGENT" ]; then
+            echo "::error::Repository secret SEC_USER_AGENT is required (example: 'Your Name you@example.com')."
+            exit 1
+          fi
+
+      - name: Run offline tests
+        run: python test_offline.py
+
+      - name: Run screener
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: python screener.py --top 25 --portfolio 10 --output results.csv
+
+      - name: Publish latest files
+        run: |
+          mkdir -p data/latest
+          mv results.csv data/latest/results.csv
+          mv portfolio.csv data/latest/portfolio.csv
+          mv macro_snapshot.csv data/latest/macro_snapshot.csv
+
+      - name: Upload run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sp500-screening-${{ github.run_id }}
+          path: data/latest/
+          retention-days: 14
+
+      - name: Commit latest results to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/latest/results.csv data/latest/portfolio.csv data/latest/macro_snapshot.csv
+          if git diff --cached --quiet; then
+            echo "No result changes to commit."
+            exit 0
+          fi
+          git commit -m "data: update daily screening results"
+          git push origin HEAD:main
