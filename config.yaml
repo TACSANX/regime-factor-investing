@@ -1,0 +1,120 @@
+cache_dir: .cache_sp500_screener
+cache_hours:
+  universe: 12
+  sec: 24
+  macro: 6
+price_period: 2y
+price_batch_size: 80
+min_history_days: 260
+min_data_completeness: 0.45
+top_n: 20
+portfolio_n: 10
+max_stock_weight: 0.12
+max_sector_weight: 0.30
+trend_gate: true
+
+sector_etfs:
+  Communication Services: XLC
+  Consumer Discretionary: XLY
+  Consumer Staples: XLP
+  Energy: XLE
+  Financials: XLF
+  Health Care: XLV
+  Industrials: XLI
+  Information Technology: XLK
+  Materials: XLB
+  Real Estate: XLRE
+  Utilities: XLU
+
+regime_weights:
+  RISK_ON:
+    momentum: 0.28
+    growth: 0.18
+    quality: 0.15
+    value: 0.10
+    low_vol: 0.04
+    sector_rotation: 0.18
+    macro_sector: 0.07
+  NEUTRAL:
+    momentum: 0.22
+    growth: 0.12
+    quality: 0.18
+    value: 0.15
+    low_vol: 0.08
+    sector_rotation: 0.18
+    macro_sector: 0.07
+  HIGH_REAL_RATES:
+    momentum: 0.18
+    growth: 0.08
+    quality: 0.22
+    value: 0.20
+    low_vol: 0.10
+    sector_rotation: 0.15
+    macro_sector: 0.07
+  STAGFLATION:
+    momentum: 0.16
+    growth: 0.05
+    quality: 0.20
+    value: 0.20
+    low_vol: 0.12
+    sector_rotation: 0.15
+    macro_sector: 0.12
+  RECESSION:
+    momentum: 0.12
+    growth: 0.05
+    quality: 0.28
+    value: 0.15
+    low_vol: 0.18
+    sector_rotation: 0.10
+    macro_sector: 0.12
+
+macro_sector_tilts:
+  RISK_ON:
+    Information Technology: 0.8
+    Consumer Discretionary: 0.8
+    Industrials: 0.6
+    Financials: 0.5
+    Communication Services: 0.5
+    Materials: 0.4
+    Energy: 0.2
+    Health Care: 0.0
+    Real Estate: 0.0
+    Consumer Staples: -0.4
+    Utilities: -0.4
+  NEUTRAL: {}
+  HIGH_REAL_RATES:
+    Energy: 0.5
+    Financials: 0.3
+    Materials: 0.2
+    Industrials: 0.1
+    Consumer Staples: 0.1
+    Health Care: 0.1
+    Communication Services: -0.1
+    Consumer Discretionary: -0.3
+    Information Technology: -0.4
+    Utilities: -0.6
+    Real Estate: -1.0
+  STAGFLATION:
+    Energy: 1.0
+    Materials: 0.7
+    Health Care: 0.4
+    Consumer Staples: 0.4
+    Utilities: 0.3
+    Financials: 0.1
+    Industrials: 0.0
+    Communication Services: -0.2
+    Real Estate: -0.4
+    Information Technology: -0.5
+    Consumer Discretionary: -0.6
+  RECESSION:
+    Consumer Staples: 0.9
+    Health Care: 0.8
+    Utilities: 0.7
+    Communication Services: 0.2
+    Real Estate: 0.1
+    Information Technology: 0.0
+    Energy: -0.4
+    Financials: -0.6
+    Industrials: -0.6
+    Materials: -0.7
+    Consumer Discretionary: -0.8
