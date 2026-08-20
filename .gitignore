@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.cache_sp500_screener/
+.pytest_cache/
+.DS_Store
+
+# Local run outputs. GitHub Actions publishes canonical files under data/latest/.
+results.csv
+portfolio.csv
+macro_snapshot.csv
