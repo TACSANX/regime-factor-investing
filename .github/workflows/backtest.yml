@@ -1,0 +1,87 @@
+name: Historical Backtest
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "backtest.py"
+      - ".github/workflows/backtest.yml"
+      - "config.yaml"
+      - "screener.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: historical-backtest
+  cancel-in-progress: false
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: .cache_sp500_screener
+          key: backtest-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            backtest-${{ runner.os }}-
+            screener-${{ runner.os }}-
+
+      - name: Validate SEC user agent
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          if [ -z "$SEC_USER_AGENT" ]; then
+            echo "::error::SEC_USER_AGENT repository secret is required."
+            exit 1
+          fi
+
+      - name: Compile and test
+        run: |
+          python -m py_compile screener.py backtest.py
+          python test_offline.py
+
+      - name: Run backtest
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          python backtest.py \
+            --start 2018-01-01 \
+            --portfolio-n 10 \
+            --cost-bps 10 \
+            --output-dir data/backtest
+
+      - name: Upload backtest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: historical-backtest-${{ github.run_id }}
+          path: data/backtest/
+          retention-days: 30
+
+      - name: Commit backtest results to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/backtest/summary.csv data/backtest/equity_curve.csv data/backtest/holdings.csv data/backtest/assumptions.csv
+          if git diff --cached --quiet; then
+            echo "No backtest result changes to commit."
+            exit 0
+          fi
+          git commit -m "data: update historical backtest results"
+          git push origin HEAD:main
