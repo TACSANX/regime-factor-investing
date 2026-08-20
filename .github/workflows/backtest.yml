@@ -2,6 +2,8 @@ name: Historical Backtest
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
   push:
     paths:
       - "backtest.py"
@@ -60,30 +62,43 @@ jobs:
           python test_offline.py
 
       - name: Run backtest
+        id: run-backtest
+        continue-on-error: true
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: |
+          mkdir -p data/backtest
+          set +e
           python backtest.py \
             --start 2018-01-01 \
             --portfolio-n 10 \
             --cost-bps 10 \
-            --output-dir data/backtest
+            --output-dir data/backtest 2>&1 | tee data/backtest/run.log
+          code=${PIPESTATUS[0]}
+          echo "$code" > data/backtest/exit_code.txt
+          exit "$code"
 
       - name: Upload backtest artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: historical-backtest-${{ github.run_id }}
           path: data/backtest/
           retention-days: 30
 
-      - name: Commit backtest results to main
+      - name: Commit backtest results and diagnostics to main
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/backtest/summary.csv data/backtest/equity_curve.csv data/backtest/holdings.csv data/backtest/assumptions.csv
+          git add -A -- data/backtest
           if git diff --cached --quiet; then
-            echo "No backtest result changes to commit."
+            echo "No backtest files to commit."
             exit 0
           fi
           git commit -m "data: update historical backtest results"
           git push origin HEAD:main
+
+      - name: Fail workflow if backtest failed
+        if: steps.run-backtest.outcome == 'failure'
+        run: exit 1
