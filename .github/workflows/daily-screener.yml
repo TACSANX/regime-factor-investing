@@ -49,12 +49,14 @@ jobs:
           fi
 
       - name: Run offline tests
-        run: python test_offline.py
+        run: |
+          python test_offline.py
+          python test_constraints.py
 
       - name: Run screener
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
-        run: python screener.py --top 25 --portfolio 10 --output results.csv
+        run: python screener_v2.py --top 25 --portfolio 10 --output results.csv
 
       - name: Publish latest files
         run: |
@@ -80,4 +82,12 @@ jobs:
             exit 0
           fi
           git commit -m "data: update daily screening results"
-          git push origin HEAD:main
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1
