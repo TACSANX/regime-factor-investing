@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/research-validation.yml"
+      - "data/research_backtest/monthly.csv"
   workflow_dispatch:
 
 permissions:
