@@ -1,0 +1,31 @@
+cohort: 2026-08-21-r1
+frozen_commit: c9c82105036e15340f25eb9582a3ced354bb31d6
+frozen_on: 2026-08-21
+benchmark: SPY
+secondary_benchmark: RSP
+rebalance: monthly
+signal: last US trading-session close of prior calendar month
+execution: next US trading-session adjusted open
+transaction_cost_bps_per_dollar_traded: 10
+start_with_next_unseen_month: 2026-08
+promotion_policy: >-
+  Shadow results are forward evidence only. No strategy is promoted automatically.
+  Any model-definition change starts a new cohort rather than rewriting this cohort.
+strategies:
+  - full_dynamic_n10_invvol
+  - full_dynamic_n10_equal
+  - full_dynamic_n10_score
+  - full_dynamic_n5_invvol
+  - full_dynamic_n20_invvol
+  - full_dynamic_strict_12_30
+  - static_neutral_n10_invvol
+  - dynamic_no_macro_sector_n10
+  - no_sector_rotation_n10
+  - no_momentum_n10
+  - no_quality_n10
+  - no_value_n10
+  - no_growth_n10
+  - no_low_vol_n10
+  - hyp_no_growth_low_vol_n10
+  - hyp_no_growth_low_vol_macro_sector_n10
+  - hyp_static_neutral_no_growth_low_vol_n10
