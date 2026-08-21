@@ -1,0 +1,2 @@
+strategy,months,transitions,avg_retained_names,median_retained_names,min_retained_names,avg_retention_rate,avg_new_names_per_month,max_new_names_in_month,score_equal_holding_mismatch_months
+hyp_no_growth_low_vol_macro_sector_n10_equal,102,101,5.792079207920792,6.0,2,0.5792079207920792,4.207920792079208,8,0
