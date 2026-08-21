@@ -6,6 +6,11 @@ on:
       - ".github/workflows/research-backtest.yml"
       - "research_backtest.py"
       - "research_candidates.py"
+      - "research_validation.py"
+      - "research_overfit.py"
+      - "research_overfit_sensitivity.py"
+      - "component_attribution.py"
+      - "research_trial_ledger.csv"
   workflow_dispatch:
 
 permissions:
@@ -49,7 +54,10 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: |
           test -n "$SEC_USER_AGENT"
-          python -m py_compile screener.py backtest.py backtest_v2.py research_backtest.py research_candidates.py portfolio_constraints.py
+          python -m py_compile \
+            screener.py backtest.py backtest_v2.py portfolio_constraints.py \
+            research_backtest.py research_candidates.py research_validation.py \
+            research_overfit.py research_overfit_sensitivity.py component_attribution.py
           python test_offline.py
           python test_constraints.py
 
@@ -64,14 +72,18 @@ jobs:
             --min-valid-weight 0.95 \
             --output-dir data/research_backtest
 
-      - name: Upload research artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: research-backtest-${{ github.run_id }}
-          path: data/research_backtest/
-          retention-days: 30
+      # Run every diagnostic against the exact matrix produced above. Commits
+      # made by GITHUB_TOKEN do not recursively trigger downstream workflows,
+      # so validation must be atomic with the matrix run to avoid stale DSR/PBO.
+      - name: Run statistical validation
+        run: |
+          python research_validation.py
+          python research_overfit.py
+          python research_overfit_sensitivity.py
+          python component_attribution.py
 
+      # Results are versioned in git, so a second copy in Actions artifact
+      # storage is intentionally omitted.
       - name: Publish research results
         run: |
           git config user.name "github-actions[bot]"
@@ -81,7 +93,7 @@ jobs:
             echo "No research result changes."
             exit 0
           fi
-          git commit -m "data: update research backtest matrix"
+          git commit -m "data: update research matrix and validation"
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git rebase origin/main
