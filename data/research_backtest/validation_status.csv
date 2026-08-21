@@ -1,0 +1,2 @@
+base_strategy,historical_universe_usable,historical_price_coverage_usable,multiple_testing_proxy_pass_5pct,any_strategy_production_validated,decision,note
+full_dynamic_n10_invvol,False,False,False,False,RESEARCH_ONLY,Passing statistical diagnostics is insufficient while point-in-time universe or data-vintage gates fail.

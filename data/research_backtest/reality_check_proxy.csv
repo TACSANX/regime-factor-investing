@@ -1,0 +1,2 @@
+candidate_count,common_months,observed_best_strategy,observed_best_annualized_active_mean,block_months,bootstrap_reps,max_mean_reality_check_proxy_p,passes_5pct,note
+14,102,no_low_vol_n10,0.04922153897624647,12,10000,0.2974,False,"Circular-block max-mean data-snooping proxy; conservative diagnostic, not formal White/SPA inference."
