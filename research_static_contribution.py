@@ -44,15 +44,16 @@ def main() -> None:
         if n != 10:
             raise RuntimeError(f"Expected 10 names at {date.date()}, got {n}")
         weight = 1.0 / n
-        for row in g.itertuples(index=False):
-            ret = rse.price_return(open_px, row.Symbol, pd.Timestamp(p["execution_date"]), pd.Timestamp(p["exit_execution_date"]))
+        for _, row in g.iterrows():
+            symbol = str(row["Symbol"])
+            ret = rse.price_return(open_px, symbol, pd.Timestamp(p["execution_date"]), pd.Timestamp(p["exit_execution_date"]))
             if not np.isfinite(ret):
-                raise RuntimeError(f"Missing return {row.Symbol} at {date.date()}")
+                raise RuntimeError(f"Missing return {symbol} at {date.date()}")
             detail.append({
                 "signal_date": date.date().isoformat(),
-                "Symbol": row.Symbol,
-                "Security": row.Security,
-                "GICS Sector": getattr(row, "_3"),
+                "Symbol": symbol,
+                "Security": row["Security"],
+                "GICS Sector": row["GICS Sector"],
                 "weight": weight,
                 "stock_return": ret,
                 "gross_return_contribution": weight * ret,
