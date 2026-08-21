@@ -1,0 +1,7 @@
+assumption,value
+universe,Current S&P 500 constituents; survivorship bias remains
+rebalance,"Monthly, signal at month-end close; next month return"
+fundamental_timing,Only SEC facts with filed/end date <= signal date
+macro_timing,Conservative publication lags applied
+transaction_cost,10.0 bps one-way * turnover
+known_bias,FRED latest-vintage history introduces macro revision bias
