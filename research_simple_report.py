@@ -11,6 +11,13 @@ SHORTLIST = [
     "hyp_static_neutral_no_growth_low_vol_n10",
     "full_dynamic_n10_score",
 ]
+PAIRWISE = [
+    (
+        "score_vs_equal_best_factor_set",
+        "hyp_no_growth_low_vol_macro_sector_n10_score",
+        "hyp_no_growth_low_vol_macro_sector_n10_equal",
+    ),
+]
 
 
 def beta(y: pd.Series, x: pd.Series) -> float:
@@ -28,6 +35,23 @@ def compound(r: pd.Series) -> float:
     return float((1.0 + x).prod() - 1.0) if len(x) else float("nan")
 
 
+def circular_block_means(values: np.ndarray, block: int = 12, reps: int = 20000, seed: int = 20260821) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+    n = len(values)
+    if n == 0:
+        return np.array([], dtype=float)
+    rng = np.random.default_rng(seed)
+    out = np.empty(reps, dtype=float)
+    blocks_needed = int(np.ceil(n / block))
+    offsets = np.arange(block)
+    for i in range(reps):
+        starts = rng.integers(0, n, size=blocks_needed)
+        idx = ((starts[:, None] + offsets[None, :]) % n).ravel()[:n]
+        out[i] = float(values[idx].mean())
+    return out
+
+
 def main() -> None:
     monthly = pd.read_csv(ROOT / "monthly.csv", parse_dates=["signal_date"])
     bench = pd.read_csv(ROOT / "benchmarks.csv", parse_dates=["signal_date"])
@@ -37,6 +61,7 @@ def main() -> None:
     regime_rows = []
     yearly_rows = []
     stability_rows = []
+    pairwise_rows = []
 
     for strategy in SHORTLIST:
         s = monthly[monthly["strategy"] == strategy].copy()
@@ -114,13 +139,37 @@ def main() -> None:
             "best_regime_annualized_mean_excess": float(regime_summary["annualized_arithmetic_excess_vs_spy"].max()) if len(regime_summary) else np.nan,
         })
 
+    for label, left, right in PAIRWISE:
+        l = monthly[monthly["strategy"] == left][["signal_date", "net_return"]].rename(columns={"net_return": "left_return"})
+        r = monthly[monthly["strategy"] == right][["signal_date", "net_return"]].rename(columns={"net_return": "right_return"})
+        x = l.merge(r, on="signal_date", how="inner").sort_values("signal_date")
+        if x.empty:
+            continue
+        d = (x["left_return"] - x["right_return"]).to_numpy(dtype=float)
+        boot = circular_block_means(d)
+        pairwise_rows.append({
+            "comparison": label,
+            "left_strategy": left,
+            "right_strategy": right,
+            "months": len(d),
+            "annualized_mean_return_delta": float(np.mean(d) * 12.0),
+            "ci025": float(np.quantile(boot, 0.025) * 12.0),
+            "ci50": float(np.quantile(boot, 0.50) * 12.0),
+            "ci975": float(np.quantile(boot, 0.975) * 12.0),
+            "bootstrap_probability_left_gt_right": float(np.mean(boot > 0.0)),
+            "block_months": 12,
+            "bootstrap_reps": len(boot),
+        })
+
     pd.DataFrame(market_rows).to_csv(ROOT / "simple_market_states.csv", index=False)
     pd.DataFrame(regime_rows).to_csv(ROOT / "simple_regime_summary.csv", index=False)
     pd.DataFrame(yearly_rows).to_csv(ROOT / "simple_yearly.csv", index=False)
     pd.DataFrame(stability_rows).to_csv(ROOT / "simple_stability.csv", index=False)
+    pd.DataFrame(pairwise_rows).to_csv(ROOT / "simple_pairwise.csv", index=False)
 
     print(pd.DataFrame(market_rows).to_string(index=False), flush=True)
     print("\nStability:\n" + pd.DataFrame(stability_rows).to_string(index=False), flush=True)
+    print("\nPairwise:\n" + pd.DataFrame(pairwise_rows).to_string(index=False), flush=True)
 
 
 if __name__ == "__main__":
