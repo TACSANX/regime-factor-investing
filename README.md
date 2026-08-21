@@ -1,69 +1,145 @@
 # Regime Factor Investing
 
-S&P 500 constituentsを対象に、**テクニカル、ファンダメンタル、セクターローテーション、金利、信用環境、景気後退リスク**を統合し、マクロレジームに応じて因子ウェイトを変える日次スクリーナーです。
+S&P 500採用銘柄を対象に、**テクニカル、ファンダメンタル、セクターローテーション、金利、信用環境、景気後退リスク**を統合して順位付けする研究用スクリーナーです。
 
-> This is a research tool, not investment advice. Rankings are model outputs and do not guarantee future returns.
+> Research only. Backtest rankings and portfolio weights are not investment advice and do not guarantee future returns.
 
-## Overview
+## Live screener
 
-このモデルは「すべての因子を固定ウェイトで足す」のではなく、マクロ環境を制御層として使います。
+現在のライブモデルは以下を使用します。
 
 - **Universe**: 実行時点のS&P 500構成銘柄
 - **Momentum / Technical**: 12-1M、6M、3M、対SPY相対強度、200日線、50/200日線、52週高値、RSI、実現ボラティリティ
-- **Fundamentals**: SEC EDGAR Company FactsからTTM財務データを構築
+- **Fundamentals**: SEC EDGAR Company FactsからTTM財務を構築
 - **Value**: Earnings Yield、FCF Yield、Book-to-Price
 - **Quality**: ROA、ROE、営業利益率、営業CFマージン、負債比率、現金比率
 - **Growth**: TTM売上高・純利益の前年同期比
 - **Sector Rotation**: 11 Select Sector ETFの対SPY相対モメンタム + セクター内部ブレッドス
-- **Macro Regime**: Sahm Rule、10Y-3M、HY OAS、NFCI、10年実質金利、FF金利、失業率、CPI、CFNAI
+- **Macro**: Sahm Rule、10Y-3M、HY OAS、NFCI、10年実質金利、FF金利、失業率、CPI、CFNAI
 - **Regimes**: `RISK_ON`, `NEUTRAL`, `HIGH_REAL_RATES`, `STAGFLATION`, `RECESSION`
-- **Portfolio Construction**: score × inverse volatility。現在のライブ設定では銘柄・セクターのハード上限を設けず、集中度を計測して評価します。
+- **Portfolio**: 現在は銘柄・セクターのハード上限を置かず、集中度を別途計測
+
+`config.yaml` の `max_stock_weight` / `max_sector_weight` は現在 `1.0` で非拘束です。旧12%/30%制約版は研究上の比較ベースラインとしてのみ残しています。
 
 ## Data sources
 
 | Data | Source | Cost |
 |---|---|---:|
-| S&P 500 constituents | Wikipedia | Free |
+| Current S&P 500 constituents | Wikipedia | Free |
 | Price / volume | Yahoo Finance via `yfinance` | Free* |
 | Company fundamentals | SEC EDGAR Company Facts | Free |
-| Macro / rates / credit | FRED CSV endpoints | Free |
+| Macro / rates / credit | FRED | Free |
 | Compute | GitHub Actions standard runner on public repo | Free |
 
-\* `yfinance` is an unofficial client. Review Yahoo/yfinance terms before non-personal or commercial use.
+\* `yfinance` is unofficial. Terms and endpoint behavior can change.
 
-## GitHub Actions: zero-cost daily operation
+## Daily GitHub Actions
 
-`.github/workflows/daily-screener.yml` runs automatically at **07:30 Asia/Tokyo, Monday-Friday** and:
+`.github/workflows/daily-screener.yml` runs weekdays at **07:30 Asia/Tokyo** and commits the current ranking directly to `main`. Pull requests are intentionally not used.
 
-1. installs dependencies;
-2. restores the screener cache;
-3. runs offline tests;
-4. downloads market, SEC and FRED data;
-5. ranks S&P 500 constituents;
-6. uploads a 14-day Actions artifact;
-7. commits the latest outputs directly to `main` under `data/latest/`.
+Outputs:
 
-Canonical outputs:
+- `data/latest/results.csv`
+- `data/latest/portfolio.csv`
+- `data/latest/macro_snapshot.csv`
+- `data/latest/portfolio_diagnostics.csv`
 
-- `data/latest/results.csv` — full ranking
-- `data/latest/portfolio.csv` — reference portfolio
-- `data/latest/macro_snapshot.csv` — macro values used in the run
+The diagnostics file records realized concentration such as max stock weight, Top-3 weight, HHI, effective number of holdings, max sector weight and effective sector count.
 
-The workflow intentionally does **not** create pull requests.
+### SEC User-Agent
 
-### One-time setup: SEC User-Agent
-
-SEC requires automated requests to declare an identifiable User-Agent. Add one repository secret:
-
-1. Open **Settings → Secrets and variables → Actions**.
-2. Create a repository secret named `SEC_USER_AGENT`.
-3. Use a value such as:
+Automated SEC requests require an identifiable User-Agent. Add repository secret `SEC_USER_AGENT`, for example:
 
 ```text
 Your Name your-email@example.com
 ```
 
-The workflow fails fast if this secret is missing.
+## Research methodology
+
+The repository deliberately separates **screening** from **evidence that the strategy works**.
+
+### Bias-reduced V2
+
+`backtest_v2.py` corrected important V1 problems:
+
+- month-end data are used to compute a signal only after the close;
+- execution occurs at the **next trading-session adjusted open**;
+- SEC facts must have been filed on/before the signal date;
+- monthly macro variables use conservative publication lags;
+- trading cost is charged per dollar actually traded.
+
+The completed strict 12% stock / 30% sector V2 baseline for 2018-01 through 2026-07 was approximately:
+
+| Portfolio | CAGR | Sharpe | Max drawdown |
+|---|---:|---:|---:|
+| Regime Factor V2 strict baseline | 14.32% | 0.83 | -21.22% |
+| SPY | 13.96% | 0.85 | -23.31% |
+| RSP | 10.76% | 0.65 | -29.88% |
+
+This is not treated as final alpha evidence because point-in-time membership and macro-vintage biases remain.
+
+### Research matrix
+
+`research_backtest.py` / `research_candidates.py` compare many model components while reusing the same underlying data load:
+
+- inverse-vol, equal-weight and score-proportional allocation;
+- Top 5 / 10 / 20 breadth;
+- constrained vs unconstrained portfolios;
+- dynamic regime weights vs static neutral weights;
+- direct macro-sector tilt ablation;
+- one-factor and interaction ablations;
+- transaction-cost sensitivity;
+- subperiod / regime behavior;
+- realized concentration.
+
+The strongest **selected in-sample** candidate currently found removes standalone Growth, Low-Vol ranking and direct Macro-Sector tilt. With score-proportional allocation it produced about **24.35% CAGR**, Sharpe **1.10** and max drawdown **-19.49%** over the 102-month research sample. This is explicitly **not a production forecast**: it was found after testing multiple variants and therefore receives a multiple-testing penalty.
+
+### Statistical anti-overfit gates
+
+The repository now includes:
+
+- `research_trial_ledger.csv` — records every strategy trial, including invalidated experiments;
+- `research_validation.py` — block bootstrap, rolling windows and split-sample stability;
+- `research_overfit.py` — Deflated Sharpe Ratio and CSCV Probability of Backtest Overfitting;
+- `research_overfit_sensitivity.py` — sensitivity to assumed trial count and CSCV block count;
+- `component_attribution.py` — paired 12-month circular-block bootstrap for the marginal contribution of each component.
+
+A strategy is not promoted merely because it has the highest CAGR. The research workflow runs the matrix and all statistical diagnostics **atomically in the same Actions job**, so DSR/PBO cannot silently remain stale after the matrix changes.
+
+Current component evidence from the bias-reduced sample is strongest for **Value**. Retaining Value versus removing it increased annualized mean return by about **8.57 percentage points**, with a 12-month block-bootstrap 95% interval of approximately **+3.27% to +13.96%**. Momentum and Quality are positive but less statistically decisive. The current standalone Growth score, Low-Vol ranking score and direct Macro-Sector tilt have negative point estimates, but these findings are still treated as hypotheses rather than universal factor conclusions.
+
+## Point-in-time universe research
+
+Current-member backtests have survivorship bias, so several independent reconstructions are audited under `data/research/`.
+
+- `historical_universe_compare.py` — compares public reconstruction datasets;
+- `official_sp500_change_audit.py` — checks reconstructions against dated S&P Global constituent-change announcements;
+- `pitindex_audit.py` — cross-audits the `pitindex` event-driven free dataset against official changes and the monthly reconstruction;
+- `historical_price_coverage.py` — measures whether historical members have usable Yahoo price history;
+- `alternate_price_probe.py` — tests alternate free price routes without automatically mixing incompatible price-adjustment conventions.
+
+A curated official S&P spot audit currently found the Pierre month-end reconstruction consistent on all 9 tested add/delete events, while the Hans snapshot series passed 4/9. This is a spot audit, not certification of the entire history.
+
+The historical price problem remains harder: Yahoo retrieves nearly all observations for symbols it successfully transports, but a material group of old/delisted tickers cannot be fetched reliably. A point-in-time universe is therefore not considered production-safe until the delisted-price path is independently validated.
+
+## Macro vintages
+
+The current backtest uses conservative release lags, but most FRED series are still latest-vintage histories. FRED/ALFRED supports historical real-time periods and vintage dates through the official API. A future vintage-correct run should use those endpoints rather than assuming the latest revised history was known in the past.
+
+## Forward out-of-sample protocol
+
+Historical optimization is not allowed to rewrite the forward record. A frozen shadow cohort was registered on **2026-08-21**. Its first genuinely unseen signal is the **2026-08 month-end** signal, executed on the next trading session. Future model changes must form a separately timestamped cohort rather than rewriting the old cohort.
+
+## Research direction
+
+The next priority is not to generate more arbitrary parameter combinations. It is to reduce model and data uncertainty:
+
+1. finish point-in-time constituent validation;
+2. obtain a validated delisted-price path;
+3. replace revised macro history with ALFRED vintages where feasible;
+4. redesign Quality/Growth using academically established definitions rather than assuming one-year revenue/earnings growth is the correct quality-growth measure;
+5. separate stock-selection alpha from sector-allocation alpha;
+6. accumulate frozen forward observations.
 
 ## Local setup
 
@@ -72,129 +148,24 @@ python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 export SEC_USER_AGENT="Your Name your-email@example.com"
-```
-
-Run:
-
-```bash
-python screener.py --top 25 --portfolio 10 --output results.csv
+python daily_run.py --top 25 --portfolio 10 --output results.csv
 ```
 
 Offline tests:
 
 ```bash
 python test_offline.py
+python test_constraints.py
+python test_forward_shadow.py
 ```
-
-## Configuration
-
-`config.yaml` controls cache TTLs, factor weights and regime-specific sector tilts. `max_stock_weight` / `max_sector_weight` are currently `1.0`, so they are non-binding in the live reference portfolio.
-
-Current factor-weight sets:
-
-| Regime | Main bias |
-|---|---|
-| `RISK_ON` | Momentum / Growth / cyclical rotation |
-| `NEUTRAL` | Balanced multi-factor |
-| `HIGH_REAL_RATES` | Quality / Value, lower duration exposure |
-| `STAGFLATION` | Quality / Value / inflation-sensitive sectors |
-| `RECESSION` | Quality / Low Vol / defensives |
-
-## Backtest research
-
-The repository separates headline screening from research validation.
-
-### Bias-reduced V2 baseline
-
-`backtest_v2.py` fixes two important V1 problems:
-
-- signal is computed using month-end data, but execution occurs at the **next trading-session adjusted open**;
-- monthly macro series use conservative publication lags and SEC fundamentals are restricted to facts filed on/before the signal date.
-
-The completed V2 run (2018-01 through 2026-07, 10 bps per dollar traded) produced approximately:
-
-| Portfolio | CAGR | Sharpe | Max drawdown |
-|---|---:|---:|---:|
-| Regime Factor V2, strict 12% / 30% baseline | 14.32% | 0.83 | -21.22% |
-| SPY | 13.96% | 0.85 | -23.31% |
-| RSP | 10.76% | 0.65 | -29.88% |
-
-This result is **not** considered final evidence of alpha because current S&P 500 membership and latest-vintage FRED histories still create survivorship/revision bias.
-
-### Research matrix
-
-`research_backtest.py` reuses one data load to compare:
-
-- uncapped inverse-volatility × score allocation (current base research strategy);
-- equal-weight and score-only allocation;
-- Top 5 / 10 / 20 breadth;
-- the old strict 12% stock / 30% sector baseline;
-- static neutral weights vs dynamic macro-regime weights;
-- removal of macro-sector tilt;
-- one-factor-at-a-time ablations for momentum, quality, value, growth, low-volatility and sector rotation;
-- transaction costs from 0 to 100 bps per dollar traded;
-- subperiod and regime-level results;
-- realized concentration: max stock/sector weight, HHI and effective number of holdings/sectors.
-
-Outputs are written to `data/research_backtest/` by `.github/workflows/research-backtest.yml`.
-
-### Historical-universe audit
-
-The repository also tests whether a survivorship-reduced backtest can be built with free data:
-
-- `historical_universe_compare.py` compares two public historical S&P 500 reconstruction datasets;
-- `historical_price_coverage.py` measures whether Yahoo has usable historical prices for those members and retries failed bulk downloads individually;
-- results are stored under `data/research/`.
-
-Historical constituent sources still disagree on ticker history and corporate renames, so they are not automatically promoted to the production backtest until identity normalization and price coverage pass quality thresholds.
 
 ## Important limitations
 
-- **No return guarantee**: a ranking is not a buy/sell instruction.
-- **Free-market-data reliability**: Yahoo endpoints may change, throttle or fail.
-- **No analyst-estimate layer**: forward EPS revisions, estimate dispersion and high-quality forward valuation are intentionally excluded because consistent free point-in-time data is difficult to obtain.
-- **REIT / Financial accounting differences**: sector-specific logic is used, but REIT FFO/AFFO is not robustly standardized in this version.
-- **Backtest bias**: current-member backtests still have S&P 500 survivorship bias; latest-vintage FRED data can contain revision bias.
-- **SEC data timing**: Company Facts updates when filings become available; fundamentals are not real-time market data.
-- **Research selection bias**: factor ablations are diagnostics. Choosing the best in-sample variant and declaring it production-ready would be data mining; confirmation must use a separate out-of-sample protocol.
-
-## Project files
-
-```text
-.
-├── .github/workflows/
-│   ├── daily-screener.yml
-│   ├── backtest.yml
-│   ├── backtest-v2-once.yml
-│   ├── research-backtest.yml
-│   ├── historical-universe-compare.yml
-│   └── historical-price-coverage.yml
-├── backtest.py
-├── backtest_v2.py
-├── research_backtest.py
-├── historical_universe_compare.py
-├── historical_price_coverage.py
-├── portfolio_constraints.py
-├── config.yaml
-├── requirements.txt
-├── screener.py
-├── test_offline.py
-├── data/backtest/
-├── data/backtest_v2/
-├── data/research/
-└── README.md
-```
-
-## Possible extensions
-
-With a suitable licensed data source, useful additions include:
-
-- EPS revision breadth / dispersion
-- Forward P/E and forward FCF yield
-- Earnings surprise history
-- Options IV / skew / term structure
-- Short interest / securities lending
-- Insider and institutional ownership changes
-- Point-in-time index membership with verified corporate-identity history
-- Vintage macro data (for example, ALFRED-style vintages)
-- Issuer-level bond spreads / CDS
+- Rankings are research outputs, not guarantees or investment instructions.
+- Yahoo/yfinance can throttle, change endpoints or fail for delisted securities.
+- Current-member historical tests retain survivorship bias until the PIT universe is promoted.
+- Latest-vintage FRED values can retain revision bias until ALFRED vintages are used.
+- Current GICS sector labels are not automatically point-in-time classifications.
+- REIT / Financial accounting requires sector-specific treatment; standardized FFO/AFFO is not yet robust.
+- Analyst estimates, forward EPS revisions, options, short interest and issuer-level credit are not yet included because reliable point-in-time free data is not established.
+- Every added strategy variant increases the multiple-testing burden and must be recorded in the trial ledger.
