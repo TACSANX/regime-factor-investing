@@ -8,6 +8,7 @@ on:
       - "research_simple_primary_overfit.py"
       - "research_simple_primary_relative_risk.py"
       - "research_static_cost.py"
+      - "research_it_dependence.py"
       - "research_trial_ledger.csv"
       - ".github/workflows/research-static-diagnostics.yml"
   workflow_dispatch:
@@ -36,7 +37,8 @@ jobs:
             research_winner_stress.py \
             research_simple_primary_overfit.py \
             research_simple_primary_relative_risk.py \
-            research_static_cost.py
+            research_static_cost.py \
+            research_it_dependence.py
       - name: Run diagnostics and persist status
         id: diagnostics
         continue-on-error: true
@@ -49,7 +51,8 @@ jobs:
             research_winner_stress.py \
             research_simple_primary_overfit.py \
             research_simple_primary_relative_risk.py \
-            research_static_cost.py
+            research_static_cost.py \
+            research_it_dependence.py
           do
             echo "=== ${script} ===" | tee -a data/research_backtest/static_diagnostics.log
             set +e
