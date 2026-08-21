@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import io
 from pathlib import Path
 
 import pandas as pd
 import requests
 
-from historical_universe_compare import HANS_RAW, PIERRE_RAW, load_hans, norm_symbol, parse_pierre
+from historical_universe_compare import PIERRE_RAW, load_hans, norm_symbol, parse_pierre
 
 OUT = Path("data/research")
 UA = {"User-Agent": "regime-factor-investing research"}
+MAX_POST_SNAPSHOT_LAG_DAYS = 45
 
-# Curated, high-authority spot checks from S&P Global press releases.  This is
+# Curated, high-authority spot checks from S&P Global press releases. This is
 # deliberately an audit sample rather than a claim that these events form a
 # complete constituent-change history.
 CHECKS = [
@@ -72,11 +72,24 @@ CHECKS = [
 ]
 
 
-def hans_members_on_or_before(hans: pd.DataFrame, date: pd.Timestamp) -> tuple[pd.Timestamp, set[str]]:
-    eligible = hans[hans["date"] <= date]
+def hans_members_before(hans: pd.DataFrame, effective: pd.Timestamp) -> tuple[pd.Timestamp, set[str]]:
+    eligible = hans[hans["date"] < effective]
     if eligible.empty:
         return pd.NaT, set()
     row = eligible.iloc[-1]
+    return pd.Timestamp(row["date"]), set(row["members"])
+
+
+def hans_members_after(
+    hans: pd.DataFrame,
+    effective: pd.Timestamp,
+    max_lag_days: int = MAX_POST_SNAPSHOT_LAG_DAYS,
+) -> tuple[pd.Timestamp, set[str]]:
+    upper = effective + pd.Timedelta(days=max_lag_days)
+    eligible = hans[(hans["date"] >= effective) & (hans["date"] <= upper)]
+    if eligible.empty:
+        return pd.NaT, set()
+    row = eligible.iloc[0]
     return pd.Timestamp(row["date"]), set(row["members"])
 
 
@@ -103,11 +116,11 @@ def main() -> None:
 
     for check in CHECKS:
         effective = pd.Timestamp(check["effective_date"])
-        # Use a conservative pre-event date and a post-event date.  The hanshof
-        # series has daily-ish snapshots, so allowing +5 calendar days avoids
-        # treating a weekend/holiday snapshot delay as a membership error.
-        pre_date, pre = hans_members_on_or_before(hans, effective - pd.Timedelta(days=1))
-        post_date, post = hans_members_on_or_before(hans, effective + pd.Timedelta(days=5))
+        pre_date, pre = hans_members_before(hans, effective)
+        post_date, post = hans_members_after(hans, effective)
+        post_available = pd.notna(post_date)
+        post_lag = int((post_date - effective).days) if post_available else None
+
         period = effective.to_period("M")
         key = str(period)
         if key not in pierre_cache:
@@ -120,18 +133,29 @@ def main() -> None:
         add = norm_symbol(check["added"])
         delete = norm_symbol(check["deleted"])
         source_ok, source_status = verify_source_url(check["source"])
-        hans_pass = add not in pre and add in post and delete in pre and delete not in post
+        pre_available = pd.notna(pre_date)
+        hans_pass = bool(
+            pre_available
+            and post_available
+            and add not in pre
+            and add in post
+            and delete in pre
+            and delete not in post
+        )
         pierre_pass = bool(pset) and add in pset and delete not in pset
         rows.append({
             **check,
             "source_http_ok": source_ok,
             "source_http_status": source_status,
-            "hans_pre_snapshot": pre_date.date().isoformat() if pd.notna(pre_date) else "",
-            "hans_post_snapshot": post_date.date().isoformat() if pd.notna(post_date) else "",
-            "hans_added_absent_pre": add not in pre,
-            "hans_added_present_post": add in post,
-            "hans_deleted_present_pre": delete in pre,
-            "hans_deleted_absent_post": delete not in post,
+            "hans_pre_snapshot": pre_date.date().isoformat() if pre_available else "",
+            "hans_post_snapshot": post_date.date().isoformat() if post_available else "",
+            "hans_post_snapshot_lag_days": post_lag,
+            "hans_pre_snapshot_available": pre_available,
+            "hans_post_snapshot_available": post_available,
+            "hans_added_absent_pre": add not in pre if pre_available else False,
+            "hans_added_present_post": add in post if post_available else False,
+            "hans_deleted_present_pre": delete in pre if pre_available else False,
+            "hans_deleted_absent_post": delete not in post if post_available else False,
             "hans_pass": hans_pass,
             "pierre_month": key,
             "pierre_added_present": add in pset,
@@ -142,14 +166,17 @@ def main() -> None:
 
     detail = pd.DataFrame(rows)
     detail.to_csv(OUT / "official_sp500_change_audit.csv", index=False)
+    auditable = detail[detail["hans_pre_snapshot_available"] & detail["hans_post_snapshot_available"]]
     summary = pd.DataFrame([{
         "checks": len(detail),
         "official_urls_reachable": int(detail["source_http_ok"].sum()),
-        "hans_pass_rate": float(detail["hans_pass"].mean()),
+        "hans_auditable_checks": len(auditable),
+        "hans_pass_rate": float(auditable["hans_pass"].mean()) if len(auditable) else float("nan"),
         "pierre_pass_rate": float(detail["pierre_pass"].mean()),
-        "both_pass_rate": float(detail["both_sources_pass"].mean()),
-        "all_checks_pass": bool(detail["both_sources_pass"].all()),
-        "scope_note": "Curated official S&P Global spot checks only; not a complete membership-history certification.",
+        "both_pass_rate": float(auditable["both_sources_pass"].mean()) if len(auditable) else float("nan"),
+        "max_hans_post_snapshot_lag_days": int(auditable["hans_post_snapshot_lag_days"].max()) if len(auditable) else None,
+        "all_auditable_checks_pass": bool(auditable["both_sources_pass"].all()) if len(auditable) else False,
+        "scope_note": "Curated official S&P Global spot checks only; not a complete membership-history certification. Hans is scored only when both a pre-effective and first post-effective snapshot are available within 45 days.",
     }])
     summary.to_csv(OUT / "official_sp500_change_audit_summary.csv", index=False)
     print(detail.to_string(index=False), flush=True)
