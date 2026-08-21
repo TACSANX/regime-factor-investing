@@ -1,0 +1,44 @@
+name: Component Attribution
+
+on:
+  push:
+    paths:
+      - ".github/workflows/component-attribution.yml"
+      - "component_attribution.py"
+      - "data/research_backtest/monthly.csv"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: component-attribution
+  cancel-in-progress: true
+
+jobs:
+  attribute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install pandas numpy
+      - run: python -m py_compile component_attribution.py
+      - run: python component_attribution.py
+      - name: Publish attribution
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/research_backtest/component_attribution.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: update component attribution"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
