@@ -1,0 +1,2 @@
+yahoo_failures_tested,stooq_available,stooq_coverage_of_yahoo_failures,approved_for_backtest,reason
+78,0,0.0,False,Coverage probe only. Need to verify corporate-action adjustment semantics and historical identity before mixing with Yahoo adjusted prices.
