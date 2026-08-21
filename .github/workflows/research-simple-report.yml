@@ -5,6 +5,7 @@ on:
     paths:
       - "research_simple_report.py"
       - "research_shortlist.py"
+      - "research_holding_stability.py"
       - ".github/workflows/research-simple-report.yml"
   workflow_dispatch:
 
@@ -25,10 +26,11 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pandas numpy
-      - run: python -m py_compile research_simple_report.py research_shortlist.py
+      - run: python -m py_compile research_simple_report.py research_shortlist.py research_holding_stability.py
       - run: |
           python research_simple_report.py
           python research_shortlist.py
+          python research_holding_stability.py
       - name: Publish lightweight research outputs
         run: |
           git config user.name "github-actions[bot]"
@@ -42,6 +44,10 @@ jobs:
             data/research_backtest/simple_cost_sensitivity.csv \
             data/research_backtest/simple_leave_one_year_out.csv \
             data/research_backtest/simple_loo_summary.csv \
+            data/research_backtest/simple_holding_churn.csv \
+            data/research_backtest/simple_holding_transitions.csv \
+            data/research_backtest/simple_holding_frequency.csv \
+            data/research_backtest/simple_holding_sector_frequency.csv \
             data/research_backtest/shortlist.csv
           if git diff --cached --quiet; then
             echo "No research output changes."
