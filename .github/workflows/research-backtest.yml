@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - ".github/workflows/research-backtest.yml"
+      - "research_backtest.py"
+      - "research_candidates.py"
   workflow_dispatch:
 
 permissions:
