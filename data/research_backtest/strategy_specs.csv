@@ -13,3 +13,6 @@ no_quality_n10,no_quality,10,invvol,factor_ablation
 no_value_n10,no_value,10,invvol,factor_ablation
 no_growth_n10,no_growth,10,invvol,factor_ablation
 no_low_vol_n10,no_low_vol,10,invvol,factor_ablation
+hyp_no_growth_low_vol_n10,no_growth_low_vol,10,invvol,interaction_hypothesis
+hyp_no_growth_low_vol_macro_sector_n10,no_growth_low_vol_macro_sector,10,invvol,interaction_hypothesis
+hyp_static_neutral_no_growth_low_vol_n10,static_neutral_no_growth_low_vol,10,invvol,interaction_hypothesis
