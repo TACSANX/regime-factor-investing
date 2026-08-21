@@ -1,0 +1,6 @@
+strategy,current_matrix_candidates,trial_count_assumed,ledger_trial_floor,observed_active_sharpe_annualized,selection_threshold_annualized,dsr_probability,passes_95pct
+hyp_no_growth_low_vol_macro_sector_n10,17,17,18,0.5489934794135192,0.46928446185523054,0.5928415279295952,False
+hyp_no_growth_low_vol_macro_sector_n10,17,18,18,0.5489934794135192,0.4759022262427851,0.5852572615068623,False
+hyp_no_growth_low_vol_macro_sector_n10,17,25,18,0.5489934794135192,0.5126823539233717,0.5426014653985001,False
+hyp_no_growth_low_vol_macro_sector_n10,17,50,18,0.5489934794135192,0.584342935651028,0.4585226685934052,False
+hyp_no_growth_low_vol_macro_sector_n10,17,100,18,0.5489934794135192,0.6496234740684376,0.38342271810634515,False

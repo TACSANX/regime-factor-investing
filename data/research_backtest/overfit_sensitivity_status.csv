@@ -1,0 +1,2 @@
+observed_best_strategy,trial_ledger_floor,dsr_passes_95pct_all_trial_scenarios,pbo_below_0_20_all_block_scenarios,robust_overfit_gate,note
+hyp_no_growth_low_vol_macro_sector_n10,18,False,True,FAIL,"Sensitivity analysis only. A pass would still not resolve point-in-time constituent, delisted-price, or macro-vintage bias."
