@@ -1,0 +1,2 @@
+yahoo_failures_tested,tiingo_metadata_candidates,metadata_candidate_rate,covers_membership_window,covers_signal_lookback,covers_exit_buffer,covers_full_backtest_window,multiple_tiingo_rows_same_symbol,requires_api_token_for_price_validation,approved_for_backtest,note
+78,69,0.8846153846153846,60,66,17,15,5,True,False,"Metadata-only audit using Tiingo supported_tickers.zip. Actual adjusted OHLC coverage, identity, delisting proceeds/corporate actions, and licensing must be validated before mixing with Yahoo data."
