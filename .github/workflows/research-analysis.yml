@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - "research_analysis.py"
+      - "ivv_history_probe.py"
       - ".github/workflows/research-analysis.yml"
       - "data/backtest/**"
   workflow_dispatch:
@@ -32,6 +33,9 @@ jobs:
 
       - name: Run robustness analysis
         run: python research_analysis.py
+
+      - name: Probe historical IVV holdings
+        run: python ivv_history_probe.py
 
       - name: Commit research outputs
         run: |
