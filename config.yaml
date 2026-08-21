@@ -9,8 +9,12 @@ min_history_days: 260
 min_data_completeness: 0.45
 top_n: 20
 portfolio_n: 10
-max_stock_weight: 0.12
-max_sector_weight: 0.30
+
+# Concentration is allowed in the live reference portfolio. These values are
+# intentionally non-binding; research outputs report realized concentration
+# instead of forcing arbitrary stock/sector caps.
+max_stock_weight: 1.0
+max_sector_weight: 1.0
 trend_gate: true
 
 sector_etfs:
