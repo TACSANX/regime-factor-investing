@@ -38,6 +38,7 @@ jobs:
           key: screener-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
             screener-${{ runner.os }}-
+            backtest-v2-${{ runner.os }}-
 
       - name: Validate SEC user agent
         env:
@@ -50,13 +51,14 @@ jobs:
 
       - name: Run offline tests
         run: |
+          python -m py_compile screener.py daily_run.py
           python test_offline.py
           python test_constraints.py
 
       - name: Run screener
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
-        run: python screener_v2.py --top 25 --portfolio 10 --output results.csv
+        run: python daily_run.py --top 25 --portfolio 10 --output results.csv
 
       - name: Publish latest files
         run: |
@@ -64,6 +66,7 @@ jobs:
           mv results.csv data/latest/results.csv
           mv portfolio.csv data/latest/portfolio.csv
           mv macro_snapshot.csv data/latest/macro_snapshot.csv
+          mv portfolio_diagnostics.csv data/latest/portfolio_diagnostics.csv
 
       - name: Upload run artifact
         uses: actions/upload-artifact@v4
@@ -76,7 +79,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/latest/results.csv data/latest/portfolio.csv data/latest/macro_snapshot.csv
+          git add -- \
+            data/latest/results.csv \
+            data/latest/portfolio.csv \
+            data/latest/macro_snapshot.csv \
+            data/latest/portfolio_diagnostics.csv
           if git diff --cached --quiet; then
             echo "No result changes to commit."
             exit 0
