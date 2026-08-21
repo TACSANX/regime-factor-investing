@@ -1,19 +1,15 @@
-name: Research Overfit Diagnostics
+name: Research Overfit Diagnostics (Manual)
 
+# Normal research runs execute this inside research-backtest.yml after the
+# matrix is generated. Standalone execution is manual to avoid stale results.
 on:
-  push:
-    paths:
-      - ".github/workflows/research-overfit.yml"
-      - "research_overfit.py"
-      - "data/research_backtest/monthly.csv"
-      - "data/research_backtest/strategy_specs.csv"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: research-overfit-diagnostics
+  group: research-overfit-diagnostics-manual
   cancel-in-progress: true
 
 jobs:

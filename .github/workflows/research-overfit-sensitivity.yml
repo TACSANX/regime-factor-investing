@@ -1,21 +1,15 @@
-name: Research Overfit Sensitivity
+name: Research Overfit Sensitivity (Manual)
 
+# Normal research runs execute this inside research-backtest.yml after the
+# matrix and DSR/PBO inputs are generated. Standalone execution is manual.
 on:
-  push:
-    paths:
-      - ".github/workflows/research-overfit-sensitivity.yml"
-      - "research_overfit.py"
-      - "research_overfit_sensitivity.py"
-      - "research_trial_ledger.csv"
-      - "data/research_backtest/monthly.csv"
-      - "data/research_backtest/strategy_specs.csv"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: research-overfit-sensitivity
+  group: research-overfit-sensitivity-manual
   cancel-in-progress: true
 
 jobs:
