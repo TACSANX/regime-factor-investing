@@ -1,2 +1,2 @@
 checks,official_urls_reachable,hans_auditable_checks,hans_pass_rate,pierre_pass_rate,both_pass_rate,max_hans_post_snapshot_lag_days,all_auditable_checks_pass,scope_note
-9,8,9,0.4444444444444444,1.0,0.4444444444444444,12,False,Curated official S&P Global spot checks only; not a complete membership-history certification. Hans is scored only when both a pre-effective and first post-effective snapshot are available within 45 days.
+30,29,30,0.5333333333333333,1.0,0.5333333333333333,12,False,Curated official S&P Global spot checks only; not a complete membership-history certification. Hans is scored only when both a pre-effective and first post-effective snapshot are available within 45 days.
