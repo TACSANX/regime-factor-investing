@@ -1,0 +1,4 @@
+strategy,years,years_outperforming_spy,year_outperformance_rate,worst_year_excess,best_year_excess,regimes_observed,regimes_positive_mean_excess,worst_regime_annualized_mean_excess,best_regime_annualized_mean_excess
+hyp_no_growth_low_vol_macro_sector_n10_score,9,6,0.6666666666666666,-0.06636686180987317,0.3244880703739844,5,5,0.011164007895697527,0.21925812817587445
+hyp_static_neutral_no_growth_low_vol_n10,9,7,0.7777777777777778,-0.1907697574970263,0.21726093345306408,5,3,-0.020455968963744603,0.20190639425715642
+full_dynamic_n10_score,9,4,0.4444444444444444,-0.10026623123845724,0.2214293466718943,5,3,-0.07410072500866505,0.07299310007120788
