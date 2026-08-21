@@ -35,7 +35,8 @@ jobs:
             data/research_backtest/simple_regime_summary.csv \
             data/research_backtest/simple_yearly.csv \
             data/research_backtest/simple_stability.csv \
-            data/research_backtest/simple_pairwise.csv
+            data/research_backtest/simple_pairwise.csv \
+            data/research_backtest/simple_cost_sensitivity.csv
           if git diff --cached --quiet; then
             echo "No research output changes."
             exit 0
