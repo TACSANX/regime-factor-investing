@@ -3,6 +3,7 @@ name: Historical Universe Comparison
 on:
   push:
     paths:
+      - "historical_universe_compare.py"
       - ".github/workflows/historical-universe-compare.yml"
   workflow_dispatch:
 
