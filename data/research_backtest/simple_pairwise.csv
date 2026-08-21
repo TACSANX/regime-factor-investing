@@ -1,0 +1,2 @@
+comparison,left_strategy,right_strategy,months,annualized_mean_return_delta,ci025,ci50,ci975,bootstrap_probability_left_gt_right,block_months,bootstrap_reps
+score_vs_equal_best_factor_set,hyp_no_growth_low_vol_macro_sector_n10_score,hyp_no_growth_low_vol_macro_sector_n10_equal,102,0.0010187299374403015,-0.000633283458645077,0.0010424199654872374,0.0026346735016979954,0.88605,12,20000
