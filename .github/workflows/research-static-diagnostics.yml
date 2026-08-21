@@ -1,5 +1,6 @@
 name: Static Primary Diagnostics
 
+# Committed-data-only diagnostics: no Yahoo, SEC, or FRED refetch.
 on:
   push:
     paths:
