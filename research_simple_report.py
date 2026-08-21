@@ -11,6 +11,10 @@ SHORTLIST = [
     "hyp_static_neutral_no_growth_low_vol_n10",
     "full_dynamic_n10_score",
 ]
+PRIMARY_ALLOCATIONS = [
+    "hyp_no_growth_low_vol_macro_sector_n10_score",
+    "hyp_no_growth_low_vol_macro_sector_n10_equal",
+]
 PAIRWISE = [
     (
         "score_vs_equal_best_factor_set",
@@ -35,6 +39,22 @@ def compound(r: pd.Series) -> float:
     return float((1.0 + x).prod() - 1.0) if len(x) else float("nan")
 
 
+def cagr(r: pd.Series) -> float:
+    x = pd.Series(r, dtype=float).dropna()
+    if not len(x):
+        return float("nan")
+    wealth = float((1.0 + x).prod())
+    return wealth ** (12.0 / len(x)) - 1.0 if wealth > 0 else float("nan")
+
+
+def max_drawdown(r: pd.Series) -> float:
+    x = pd.Series(r, dtype=float).dropna()
+    wealth = (1.0 + x).cumprod()
+    if wealth.empty:
+        return float("nan")
+    return float((wealth / wealth.cummax() - 1.0).min())
+
+
 def circular_block_means(values: np.ndarray, block: int = 12, reps: int = 20000, seed: int = 20260821) -> np.ndarray:
     values = np.asarray(values, dtype=float)
     values = values[np.isfinite(values)]
@@ -52,6 +72,25 @@ def circular_block_means(values: np.ndarray, block: int = 12, reps: int = 20000,
     return out
 
 
+def net_at_cost(g: pd.DataFrame, bps: float) -> pd.Series:
+    return g["gross_return"].astype(float) - g["traded_notional"].astype(float) * (bps / 10000.0)
+
+
+def break_even_cost_bps(g: pd.DataFrame, benchmark_cagr: float, hi: float = 250.0) -> float:
+    if cagr(net_at_cost(g, 0.0)) <= benchmark_cagr:
+        return 0.0
+    if cagr(net_at_cost(g, hi)) > benchmark_cagr:
+        return float("nan")
+    lo = 0.0
+    for _ in range(50):
+        mid = (lo + hi) / 2.0
+        if cagr(net_at_cost(g, mid)) > benchmark_cagr:
+            lo = mid
+        else:
+            hi = mid
+    return float((lo + hi) / 2.0)
+
+
 def main() -> None:
     monthly = pd.read_csv(ROOT / "monthly.csv", parse_dates=["signal_date"])
     bench = pd.read_csv(ROOT / "benchmarks.csv", parse_dates=["signal_date"])
@@ -62,6 +101,7 @@ def main() -> None:
     yearly_rows = []
     stability_rows = []
     pairwise_rows = []
+    cost_rows = []
 
     for strategy in SHORTLIST:
         s = monthly[monthly["strategy"] == strategy].copy()
@@ -161,15 +201,35 @@ def main() -> None:
             "bootstrap_reps": len(boot),
         })
 
+    spy_cagr = cagr(bench.sort_values("signal_date")["spy_return"])
+    for strategy in PRIMARY_ALLOCATIONS:
+        g = monthly[monthly["strategy"] == strategy].sort_values("signal_date").copy()
+        if g.empty:
+            continue
+        breakeven = break_even_cost_bps(g, spy_cagr)
+        for bps in [0, 5, 10, 15, 20, 25, 50]:
+            r = net_at_cost(g, float(bps))
+            cost_rows.append({
+                "strategy": strategy,
+                "cost_bps_per_dollar_traded": bps,
+                "cagr": cagr(r),
+                "max_drawdown": max_drawdown(r),
+                "spy_cagr": spy_cagr,
+                "cagr_excess_vs_spy": cagr(r) - spy_cagr,
+                "estimated_break_even_cost_bps_vs_spy_cagr": breakeven,
+            })
+
     pd.DataFrame(market_rows).to_csv(ROOT / "simple_market_states.csv", index=False)
     pd.DataFrame(regime_rows).to_csv(ROOT / "simple_regime_summary.csv", index=False)
     pd.DataFrame(yearly_rows).to_csv(ROOT / "simple_yearly.csv", index=False)
     pd.DataFrame(stability_rows).to_csv(ROOT / "simple_stability.csv", index=False)
     pd.DataFrame(pairwise_rows).to_csv(ROOT / "simple_pairwise.csv", index=False)
+    pd.DataFrame(cost_rows).to_csv(ROOT / "simple_cost_sensitivity.csv", index=False)
 
     print(pd.DataFrame(market_rows).to_string(index=False), flush=True)
     print("\nStability:\n" + pd.DataFrame(stability_rows).to_string(index=False), flush=True)
     print("\nPairwise:\n" + pd.DataFrame(pairwise_rows).to_string(index=False), flush=True)
+    print("\nCost sensitivity:\n" + pd.DataFrame(cost_rows).to_string(index=False), flush=True)
 
 
 if __name__ == "__main__":
