@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - ".github/workflows/official-sp500-change-audit.yml"
+      - "official_sp500_change_audit.py"
   workflow_dispatch:
 
 permissions:
