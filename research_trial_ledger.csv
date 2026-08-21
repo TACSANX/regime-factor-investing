@@ -1,0 +1,19 @@
+trial_id,strategy,status,methodology_family,hypothesis_origin,counts_for_trial_floor
+1,v1_original_same_close,invalidated,bias_affected_initial,initial model; later invalidated by same-bar and macro-timing audit,True
+2,full_dynamic_n10_invvol,research_only,bias_reduced_v2,base model,True
+3,full_dynamic_n10_equal,research_only,bias_reduced_v2,allocation ablation,True
+4,full_dynamic_n10_score,research_only,bias_reduced_v2,allocation ablation,True
+5,full_dynamic_n5_invvol,research_only,bias_reduced_v2,portfolio breadth ablation,True
+6,full_dynamic_n20_invvol,research_only,bias_reduced_v2,portfolio breadth ablation,True
+7,full_dynamic_strict_12_30,research_only,bias_reduced_v2,concentration constraint baseline,True
+8,static_neutral_n10_invvol,research_only,bias_reduced_v2,macro-regime ablation,True
+9,dynamic_no_macro_sector_n10,research_only,bias_reduced_v2,macro sector tilt ablation,True
+10,no_sector_rotation_n10,research_only,bias_reduced_v2,single-factor ablation,True
+11,no_momentum_n10,research_only,bias_reduced_v2,single-factor ablation,True
+12,no_quality_n10,research_only,bias_reduced_v2,single-factor ablation,True
+13,no_value_n10,research_only,bias_reduced_v2,single-factor ablation,True
+14,no_growth_n10,research_only,bias_reduced_v2,single-factor ablation,True
+15,no_low_vol_n10,research_only,bias_reduced_v2,single-factor ablation,True
+16,hyp_no_growth_low_vol_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
+17,hyp_no_growth_low_vol_macro_sector_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
+18,hyp_static_neutral_no_growth_low_vol_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
