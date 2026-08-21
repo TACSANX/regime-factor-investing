@@ -11,10 +11,11 @@ OUT = Path("data/research")
 UA = {"User-Agent": "regime-factor-investing research"}
 MAX_POST_SNAPSHOT_LAG_DAYS = 45
 
-# Curated, high-authority spot checks from S&P Global press releases. This is
-# deliberately an audit sample rather than a claim that these events form a
-# complete constituent-change history.
+# Curated, high-authority spot checks from S&P Global press releases. The
+# sample deliberately spans one-off replacements, merger deletions and several
+# quarterly rebalances. It is an audit sample, not a complete official history.
 CHECKS = [
+    # 2018
     {
         "effective_date": "2018-05-31",
         "added": "ABMD",
@@ -33,12 +34,76 @@ CHECKS = [
         "deleted": "AET",
         "source": "https://press.spglobal.com/2018-11-26-Lamb-Weston-Holdings-Maxim-Integrated-Products-and-Diamondback-Energy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
     },
+    # 2019
+    {
+        "effective_date": "2019-09-23",
+        "added": "CDW",
+        "deleted": "TSS",
+        "source": "https://press.spglobal.com/2019-09-17-CDW-Set-to-Join-S-P-500",
+    },
+    {
+        "effective_date": "2019-09-26",
+        "added": "NVR",
+        "deleted": "JEF",
+        "source": "https://press.spglobal.com/2019-09-20-NVR-Set-to-Join-S-P-500-Jefferies-Financial-Group-II-VI-to-Join-S-P-MidCap-400-Callon-Petroleum-PriceSmart-to-Join-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2019-10-03",
+        "added": "LVS",
+        "deleted": "NKTR",
+        "source": "https://press.spglobal.com/2019-09-26-Las-Vegas-Sands-Set-to-Join-S-P-500-Nektar-Therapeutics-to-Join-S-P-MidCap-400-The-Pennant-Group-to-Join-S-P-SmallCap-600",
+    },
+    # 2020 quarterly rebalance plus a later one-off replacement.
+    {
+        "effective_date": "2020-09-21",
+        "added": "ETSY",
+        "deleted": "HRB",
+        "source": "https://press.spglobal.com/2020-09-04-Etsy-Teradyne-and-Catalent-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2020-09-21",
+        "added": "TER",
+        "deleted": "COTY",
+        "source": "https://press.spglobal.com/2020-09-04-Etsy-Teradyne-and-Catalent-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2020-09-21",
+        "added": "CTLT",
+        "deleted": "KSS",
+        "source": "https://press.spglobal.com/2020-09-04-Etsy-Teradyne-and-Catalent-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
     {
         "effective_date": "2020-10-07",
         "added": "POOL",
         "deleted": "ETFC",
         "source": "https://www.spglobal.com/spdji/en/documents/indexnews/announcements/20201001-1231161/1231161_dlph400etfc500.pdf",
     },
+    # 2021 quarterly rebalance.
+    {
+        "effective_date": "2021-03-22",
+        "added": "NXPI",
+        "deleted": "FLS",
+        "source": "https://press.spglobal.com/2021-03-12-NXP-Semiconductors-Penn-National-Gaming-Generac-Holdings-and-Caesars-Entertainment-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-S-P-SmallCap-600-and-S-P-100",
+    },
+    {
+        "effective_date": "2021-03-22",
+        "added": "PENN",
+        "deleted": "SLG",
+        "source": "https://press.spglobal.com/2021-03-12-NXP-Semiconductors-Penn-National-Gaming-Generac-Holdings-and-Caesars-Entertainment-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-S-P-SmallCap-600-and-S-P-100",
+    },
+    {
+        "effective_date": "2021-03-22",
+        "added": "GNRC",
+        "deleted": "XRX",
+        "source": "https://press.spglobal.com/2021-03-12-NXP-Semiconductors-Penn-National-Gaming-Generac-Holdings-and-Caesars-Entertainment-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-S-P-SmallCap-600-and-S-P-100",
+    },
+    {
+        "effective_date": "2021-03-22",
+        "added": "CZR",
+        "deleted": "VNT",
+        "source": "https://press.spglobal.com/2021-03-12-NXP-Semiconductors-Penn-National-Gaming-Generac-Holdings-and-Caesars-Entertainment-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-S-P-SmallCap-600-and-S-P-100",
+    },
+    # 2022-2023 special replacements.
     {
         "effective_date": "2022-02-03",
         "added": "CEG",
@@ -68,6 +133,74 @@ CHECKS = [
         "added": "HUBB",
         "deleted": "OGN",
         "source": "https://press.spglobal.com/2023-10-13-Lululemon-Athletica-Hubbell-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    # 2024: four quarterly rebalances, selected S&P 500 pairs.
+    {
+        "effective_date": "2024-03-18",
+        "added": "SMCI",
+        "deleted": "WHR",
+        "source": "https://press.spglobal.com/2024-03-01-Super-Micro-Computer-and-Deckers-Outdoor-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-03-18",
+        "added": "DECK",
+        "deleted": "ZION",
+        "source": "https://press.spglobal.com/2024-03-01-Super-Micro-Computer-and-Deckers-Outdoor-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-06-24",
+        "added": "KKR",
+        "deleted": "RHI",
+        "source": "https://press.spglobal.com/2024-06-07-KKR%2C-CrowdStrike-Holdings-and-GoDaddy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-06-24",
+        "added": "CRWD",
+        "deleted": "CMA",
+        "source": "https://press.spglobal.com/2024-06-07-KKR%2C-CrowdStrike-Holdings-and-GoDaddy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-06-24",
+        "added": "GDDY",
+        "deleted": "ILMN",
+        "source": "https://press.spglobal.com/2024-06-07-KKR%2C-CrowdStrike-Holdings-and-GoDaddy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-09-23",
+        "added": "PLTR",
+        "deleted": "AAL",
+        "source": "https://press.spglobal.com/2024-09-06-Palantir-Technologies%2C-Dell-Technologies%2C-and-Erie-Indemnity-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-09-23",
+        "added": "DELL",
+        "deleted": "ETSY",
+        "source": "https://press.spglobal.com/2024-09-06-Palantir-Technologies%2C-Dell-Technologies%2C-and-Erie-Indemnity-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-09-23",
+        "added": "ERIE",
+        "deleted": "BIO",
+        "source": "https://press.spglobal.com/2024-09-06-Palantir-Technologies%2C-Dell-Technologies%2C-and-Erie-Indemnity-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-12-23",
+        "added": "APO",
+        "deleted": "QRVO",
+        "source": "https://press.spglobal.com/2024-12-06-Apollo-Global-Management-and-Workday-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    {
+        "effective_date": "2024-12-23",
+        "added": "WDAY",
+        "deleted": "AMTM",
+        "source": "https://press.spglobal.com/2024-12-06-Apollo-Global-Management-and-Workday-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600",
+    },
+    # 2025 one-off merger replacement.
+    {
+        "effective_date": "2025-05-19",
+        "added": "COIN",
+        "deleted": "DFS",
+        "source": "https://press.spglobal.com/2025-05-12-Coinbase-Global-Set-to-Join-S-P-500",
     },
 ]
 
