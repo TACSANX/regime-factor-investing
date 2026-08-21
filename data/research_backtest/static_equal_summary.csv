@@ -1,0 +1,2 @@
+months,total_return,cagr,annual_volatility,sharpe_0rf,max_drawdown,positive_month_rate,strategy,annualized_active_mean_vs_spy,avg_monthly_traded_notional,avg_valid_weight_fraction
+102,4.894805279662284,0.23209293233110606,0.23069416934215112,1.0257743836158675,-0.20782272448419048,0.6274509803921569,hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed,0.09036348548906173,0.8716419292887717,1.0
