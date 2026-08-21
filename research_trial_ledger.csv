@@ -17,3 +17,5 @@ trial_id,strategy,status,methodology_family,hypothesis_origin,counts_for_trial_f
 16,hyp_no_growth_low_vol_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
 17,hyp_no_growth_low_vol_macro_sector_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
 18,hyp_static_neutral_no_growth_low_vol_n10,research_only,bias_reduced_v2,preregistered after one-factor ablation results,True
+19,hyp_no_growth_low_vol_macro_sector_n10_equal,preregistered,bias_reduced_v2,allocation decomposition of trial 17 to separate factor ranking from inverse-vol sizing,True
+20,hyp_no_growth_low_vol_macro_sector_n10_score,preregistered,bias_reduced_v2,allocation decomposition of trial 17 to separate factor ranking from inverse-vol sizing,True
