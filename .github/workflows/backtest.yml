@@ -3,7 +3,7 @@ name: Historical Backtest
 on:
   workflow_dispatch:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "10,25 0 21 8 *"
   push:
     paths:
       - "backtest.py"
