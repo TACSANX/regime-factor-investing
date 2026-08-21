@@ -102,6 +102,8 @@ def main() -> None:
     stability_rows = []
     pairwise_rows = []
     cost_rows = []
+    loo_rows = []
+    loo_summary_rows = []
 
     for strategy in SHORTLIST:
         s = monthly[monthly["strategy"] == strategy].copy()
@@ -219,17 +221,49 @@ def main() -> None:
                 "estimated_break_even_cost_bps_vs_spy_cagr": breakeven,
             })
 
+        x = g.merge(bench[["signal_date", "spy_return"]], on="signal_date", how="inner")
+        x["year"] = x["signal_date"].dt.year
+        full_years = [int(y) for y, n in x.groupby("year").size().items() if int(n) >= 10]
+        strategy_loo = []
+        for omitted_year in full_years:
+            z = x[x["year"] != omitted_year]
+            scagr = cagr(z["net_return"])
+            bcagr = cagr(z["spy_return"])
+            excess = scagr - bcagr
+            strategy_loo.append(excess)
+            loo_rows.append({
+                "strategy": strategy,
+                "omitted_year": omitted_year,
+                "remaining_months": len(z),
+                "strategy_cagr": scagr,
+                "spy_cagr": bcagr,
+                "cagr_excess_vs_spy": excess,
+            })
+        if strategy_loo:
+            loo_summary_rows.append({
+                "strategy": strategy,
+                "omissions": len(strategy_loo),
+                "min_cagr_excess_vs_spy": float(np.min(strategy_loo)),
+                "median_cagr_excess_vs_spy": float(np.median(strategy_loo)),
+                "max_cagr_excess_vs_spy": float(np.max(strategy_loo)),
+                "positive_excess_rate": float(np.mean(np.array(strategy_loo) > 0)),
+                "all_omissions_positive_excess": bool(np.all(np.array(strategy_loo) > 0)),
+            })
+
     pd.DataFrame(market_rows).to_csv(ROOT / "simple_market_states.csv", index=False)
     pd.DataFrame(regime_rows).to_csv(ROOT / "simple_regime_summary.csv", index=False)
     pd.DataFrame(yearly_rows).to_csv(ROOT / "simple_yearly.csv", index=False)
     pd.DataFrame(stability_rows).to_csv(ROOT / "simple_stability.csv", index=False)
     pd.DataFrame(pairwise_rows).to_csv(ROOT / "simple_pairwise.csv", index=False)
     pd.DataFrame(cost_rows).to_csv(ROOT / "simple_cost_sensitivity.csv", index=False)
+    pd.DataFrame(loo_rows).to_csv(ROOT / "simple_leave_one_year_out.csv", index=False)
+    pd.DataFrame(loo_summary_rows).to_csv(ROOT / "simple_loo_summary.csv", index=False)
 
     print(pd.DataFrame(market_rows).to_string(index=False), flush=True)
     print("\nStability:\n" + pd.DataFrame(stability_rows).to_string(index=False), flush=True)
     print("\nPairwise:\n" + pd.DataFrame(pairwise_rows).to_string(index=False), flush=True)
     print("\nCost sensitivity:\n" + pd.DataFrame(cost_rows).to_string(index=False), flush=True)
+    print("\nLeave-one-year-out:\n" + pd.DataFrame(loo_summary_rows).to_string(index=False), flush=True)
 
 
 if __name__ == "__main__":
