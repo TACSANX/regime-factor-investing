@@ -1,2 +1,2 @@
 candidate_count,common_months,blocks,splits,pbo,median_oos_relative_rank,median_logit,interpretation
-19,102,8,70,0.04285714285714286,0.8947368421052632,2.171902710926842,PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
+20,102,8,70,0.07142857142857142,0.875,1.9459101490553132,PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
