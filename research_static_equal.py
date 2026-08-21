@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import math
+import time
 
 import numpy as np
 import pandas as pd
@@ -19,7 +20,32 @@ def yahoo_symbol(symbol: str) -> str:
     return str(symbol).replace(".", "-")
 
 
-def download_opens(symbols: list[str], start: pd.Timestamp, end: pd.Timestamp, batch_size: int = 80) -> pd.DataFrame:
+def _extract_open(data: pd.DataFrame, symbol: str) -> pd.Series:
+    if data.empty:
+        return pd.Series(dtype=float)
+    if isinstance(data.columns, pd.MultiIndex):
+        if "Open" not in data.columns.get_level_values(0):
+            return pd.Series(dtype=float)
+        x = data["Open"]
+        if isinstance(x, pd.DataFrame):
+            if symbol in x.columns:
+                s = x[symbol]
+            elif x.shape[1] == 1:
+                s = x.iloc[:, 0]
+            else:
+                return pd.Series(dtype=float)
+        else:
+            s = x
+    else:
+        if "Open" not in data:
+            return pd.Series(dtype=float)
+        s = data["Open"]
+    s = pd.Series(s, dtype=float).dropna()
+    s.index = pd.to_datetime(s.index).tz_localize(None)
+    return s
+
+
+def download_opens(symbols: list[str], start: pd.Timestamp, end: pd.Timestamp, batch_size: int = 40) -> pd.DataFrame:
     parts: list[pd.DataFrame] = []
     for i in range(0, len(symbols), batch_size):
         batch = symbols[i:i + batch_size]
@@ -45,6 +71,69 @@ def download_opens(symbols: list[str], start: pd.Timestamp, end: pd.Timestamp, b
     x = x.loc[:, ~x.columns.duplicated()]
     x.index = pd.to_datetime(x.index).tz_localize(None)
     return x
+
+
+def required_price_dates(holdings: pd.DataFrame, periods: pd.DataFrame) -> dict[str, set[pd.Timestamp]]:
+    period_map = periods.set_index("signal_date")[["execution_date", "exit_execution_date"]].to_dict("index")
+    required: dict[str, set[pd.Timestamp]] = {}
+    for row in holdings[["signal_date", "Symbol"]].itertuples(index=False):
+        p = period_map.get(row.signal_date)
+        if not p:
+            continue
+        ys = yahoo_symbol(row.Symbol)
+        required.setdefault(ys, set()).update({pd.Timestamp(p["execution_date"]), pd.Timestamp(p["exit_execution_date"])})
+    return required
+
+
+def _has_required(open_px: pd.DataFrame, symbol: str, dates: set[pd.Timestamp]) -> bool:
+    if symbol not in open_px.columns:
+        return False
+    for date in dates:
+        if date not in open_px.index:
+            return False
+        value = open_px.at[date, symbol]
+        if not np.isfinite(value):
+            return False
+    return True
+
+
+def repair_missing_opens(
+    open_px: pd.DataFrame,
+    required: dict[str, set[pd.Timestamp]],
+    start: pd.Timestamp,
+    end: pd.Timestamp,
+    retries: int = 3,
+) -> tuple[pd.DataFrame, list[str]]:
+    x = open_px.copy()
+    missing = [s for s, dates in required.items() if not _has_required(x, s, dates)]
+    print(f"Yahoo symbols requiring individual repair: {len(missing)}", flush=True)
+    for pos, symbol in enumerate(missing, start=1):
+        for attempt in range(1, retries + 1):
+            try:
+                data = yf.download(
+                    symbol,
+                    start=(start - pd.Timedelta(days=5)).strftime("%Y-%m-%d"),
+                    end=(end + pd.Timedelta(days=7)).strftime("%Y-%m-%d"),
+                    auto_adjust=True,
+                    progress=False,
+                    group_by="column",
+                    threads=False,
+                )
+                s = _extract_open(data, symbol)
+                if not s.empty:
+                    x = x.reindex(x.index.union(s.index)).sort_index()
+                    if symbol not in x.columns:
+                        x[symbol] = np.nan
+                    x.loc[s.index, symbol] = s.values
+                if _has_required(x, symbol, required[symbol]):
+                    break
+            except Exception as exc:
+                print(f"Retry {attempt}/{retries} failed for {symbol}: {exc}", flush=True)
+            time.sleep(float(attempt))
+        if pos % 25 == 0:
+            print(f"Yahoo individual repair: {pos}/{len(missing)}", flush=True)
+    unresolved = [s for s, dates in required.items() if not _has_required(x, s, dates)]
+    return x, unresolved
 
 
 def price_return(open_px: pd.DataFrame, symbol: str, start: pd.Timestamp, end: pd.Timestamp) -> float:
@@ -121,7 +210,13 @@ def main() -> None:
         raise RuntimeError("Static-neutral source holdings/monthly rows are missing")
 
     symbols = sorted({yahoo_symbol(s) for s in h["Symbol"].astype(str)})
-    open_px = download_opens(symbols, periods["execution_date"].min(), periods["exit_execution_date"].max())
+    start = periods["execution_date"].min()
+    end = periods["exit_execution_date"].max()
+    open_px = download_opens(symbols, start, end)
+    required = required_price_dates(h, periods)
+    open_px, unresolved = repair_missing_opens(open_px, required, start, end)
+    if unresolved:
+        raise RuntimeError(f"Yahoo still missing required price dates for {len(unresolved)} symbols: {unresolved[:20]}")
 
     prev_end: dict[str, float] = {}
     rows: list[dict] = []
@@ -138,8 +233,7 @@ def main() -> None:
         indiv = {s: r for s, r in indiv.items() if np.isfinite(r)}
         valid_weight = float(sum(target[s] for s in indiv))
         if valid_weight < MIN_VALID_WEIGHT:
-            print(f"SKIP {p.signal_date.date()}: valid weight {valid_weight:.1%}", flush=True)
-            continue
+            raise RuntimeError(f"Unexpected incomplete month {p.signal_date.date()}: valid weight {valid_weight:.1%}")
         gross = float(sum(target[s] * indiv[s] for s in indiv) / valid_weight)
         cost = float(traded * cost_rate)
         net = gross - cost
@@ -160,12 +254,14 @@ def main() -> None:
         })
 
     out = pd.DataFrame(rows)
-    if len(out) < 90:
-        raise RuntimeError(f"Too few reconstructed months: {len(out)}")
+    if len(out) != len(periods):
+        raise RuntimeError(f"Reconstructed {len(out)} of {len(periods)} periods; refusing to publish incomplete results")
     out.to_csv(ROOT / "static_equal_monthly.csv", index=False)
 
     b = bench[["signal_date", "spy_return"]].copy()
     merged = out.merge(b, on="signal_date", how="inner")
+    if len(merged) != len(out):
+        raise RuntimeError(f"Benchmark merge produced {len(merged)} of {len(out)} periods")
     active = merged["net_return"] - merged["spy_return"]
     summary = perf_stats(out["net_return"])
     summary.update({
@@ -178,6 +274,8 @@ def main() -> None:
 
     dynamic = monthly[monthly["strategy"] == DYNAMIC_EQUAL][["signal_date", "net_return"]].rename(columns={"net_return": "dynamic_return"})
     pair = dynamic.merge(out[["signal_date", "net_return"]].rename(columns={"net_return": "static_return"}), on="signal_date", how="inner")
+    if len(pair) != len(out):
+        raise RuntimeError(f"Dynamic/static merge produced {len(pair)} of {len(out)} periods")
     d = (pair["dynamic_return"] - pair["static_return"]).to_numpy(dtype=float)
     boot = circular_block_means(d)
     pairwise = pd.DataFrame([{
