@@ -1,0 +1,2 @@
+months,unique_historical_tickers,mean_monthly_coverage,median_monthly_coverage,min_monthly_coverage,months_ge_99pct,months_ge_98pct,usable_without_alternate_price_source
+100,653,0.9287986072668473,0.9316831683168317,0.8500986193293886,0,10,False
