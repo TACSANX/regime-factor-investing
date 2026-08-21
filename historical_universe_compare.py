@@ -26,44 +26,39 @@ def get(url: str) -> bytes:
 
 def load_hans() -> pd.DataFrame:
     raw = get(HANS_RAW)
-    df = pd.read_csv(io.BytesIO(raw))
-    if df.empty or len(df.columns) < 2:
-        raise RuntimeError("Unexpected hanshof historical CSV format")
-    date_col = df.columns[0]
-    dates = pd.to_datetime(df[date_col], errors="coerce")
-    if dates.notna().sum() < max(10, len(df) // 2):
-        raise RuntimeError(f"Could not parse hanshof date column {date_col!r}")
-    df = df.loc[dates.notna()].copy()
-    df.index = dates[dates.notna()].dt.tz_localize(None)
-    df = df.drop(columns=[date_col])
-    # Values are expected to be membership indicators. Coerce defensively.
-    for c in df.columns:
-        df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0)
-    df = df.sort_index()
-    df.columns = [norm_symbol(c) for c in df.columns]
-    return df
+    df = pd.read_csv(io.BytesIO(raw), dtype=str)
+    required = {"date", "tickers"}
+    if not required.issubset({str(c).lower() for c in df.columns}):
+        raise RuntimeError(f"Unexpected hanshof columns: {list(df.columns)}")
+    colmap = {str(c).lower(): c for c in df.columns}
+    df = df.rename(columns={colmap["date"]: "date", colmap["tickers"]: "tickers"})
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date"]).sort_values("date").drop_duplicates("date", keep="last")
+    df["members"] = df["tickers"].fillna("").map(
+        lambda s: {norm_symbol(x) for x in str(s).split(",") if str(x).strip()}
+    )
+    return df[["date", "members"]]
 
 
 def hans_members(df: pd.DataFrame, period: pd.Period) -> tuple[pd.Timestamp, set[str]]:
     month_end = period.end_time.normalize()
-    eligible = df.index[df.index <= month_end]
-    if len(eligible) == 0:
+    eligible = df[df["date"] <= month_end]
+    if eligible.empty:
         return pd.NaT, set()
-    date = pd.Timestamp(eligible[-1])
-    row = df.loc[date]
-    if isinstance(row, pd.DataFrame):
-        row = row.iloc[-1]
-    members = {norm_symbol(c) for c, v in row.items() if pd.notna(v) and float(v) > 0}
-    return date, members
+    row = eligible.iloc[-1]
+    return pd.Timestamp(row["date"]), set(row["members"])
 
 
 def parse_pierre(content: bytes) -> set[str]:
     text = content.decode("utf-8-sig", errors="replace")
-    lines = [x.strip() for x in text.splitlines() if x.strip()]
-    members = set()
-    for line in lines:
-        # Current files can contain one symbol per line or a simple comma-separated row.
-        token = line.split(",", 1)[0].strip().strip('"')
+    members: set[str] = set()
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        # Files are tab-delimited: ticker, company name, equal-weight placeholder.
+        # Keep a comma fallback in case the upstream format changes.
+        token = line.split("\t", 1)[0].split(",", 1)[0].strip().strip('"')
         if token and token.lower() not in {"ticker", "symbol"}:
             members.add(norm_symbol(token))
     return members
@@ -110,26 +105,27 @@ def main() -> None:
             mismatch_rows.append({"month": str(period), "symbol": sym, "side": "pierre_only"})
         print(
             f"{period}: hans={len(hset)} pierre={len(pset)} inter={len(inter)} "
-            f"jaccard={jaccard:.4f}" if np.isfinite(jaccard) else f"{period}: unavailable",
+            + (f"jaccard={jaccard:.4f}" if np.isfinite(jaccard) else "jaccard=NA"),
             flush=True,
         )
 
     summary = pd.DataFrame(summary_rows)
-    mismatches = pd.DataFrame(mismatch_rows)
+    mismatches = pd.DataFrame(mismatch_rows, columns=["month", "symbol", "side"])
     summary.to_csv(OUT / "historical_universe_comparison.csv", index=False)
     mismatches.to_csv(OUT / "historical_universe_mismatches.csv", index=False)
 
-    valid = summary[summary["pierre_available"] & summary["jaccard"].notna()]
+    valid = summary[summary["pierre_available"] & summary["jaccard"].notna()].copy()
+    median_jaccard = float(valid["jaccard"].median()) if len(valid) else np.nan
     quality = pd.DataFrame([{
         "months_compared": len(valid),
         "mean_jaccard": valid["jaccard"].mean(),
-        "median_jaccard": valid["jaccard"].median(),
+        "median_jaccard": median_jaccard,
         "min_jaccard": valid["jaccard"].min(),
         "months_jaccard_ge_0_99": int((valid["jaccard"] >= 0.99).sum()),
         "months_jaccard_ge_0_98": int((valid["jaccard"] >= 0.98).sum()),
         "max_hans_only": int(valid["hans_only_count"].max()) if len(valid) else np.nan,
         "max_pierre_only": int(valid["pierre_only_count"].max()) if len(valid) else np.nan,
-        "usable_for_survivorship_free_test": bool(len(valid) >= 90 and valid["median_jaccard" if "median_jaccard" in valid else "jaccard"].median() >= 0.98),
+        "usable_for_survivorship_free_test": bool(len(valid) >= 90 and np.isfinite(median_jaccard) and median_jaccard >= 0.98),
         "source_note_hans": "MIT; pre-2019 history seeded from fja05680/sp500, then daily Wikipedia snapshots",
         "source_note_pierre": "MIT; reconstructs monthly sets backward from Wikipedia current constituents and change table",
         "independence_note": "Not fully independent: both ultimately rely on Wikipedia-related constituent history; comparison detects implementation/data disagreements, not common-source errors.",
