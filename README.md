@@ -76,70 +76,111 @@ The completed strict 12% stock / 30% sector V2 baseline for 2018-01 through 2026
 | SPY | 13.96% | 0.85 | -23.31% |
 | RSP | 10.76% | 0.65 | -29.88% |
 
-This is not treated as final alpha evidence because point-in-time membership and macro-vintage biases remain.
+This is not treated as final alpha evidence because historical-universe and macro-vintage biases remain.
 
-### Research matrix
+## Current simplified research result
 
-`research_backtest.py` / `research_candidates.py` compare many model components while reusing the same underlying data load:
+The strongest raw selected in-sample result remains the dynamic score-proportional candidate at about **24.35% CAGR**, but additional tests show that the extra allocation and macro complexity are not statistically distinguishable from simpler alternatives.
 
-- inverse-vol, equal-weight and score-proportional allocation;
-- Top 5 / 10 / 20 breadth;
-- constrained vs unconstrained portfolios;
-- dynamic regime weights vs static neutral weights;
-- direct macro-sector tilt ablation;
-- one-factor and interaction ablations;
-- transaction-cost sensitivity;
-- subperiod / regime behavior;
-- realized concentration.
+The current **primary research candidate** is therefore:
 
-The strongest **selected in-sample** candidate currently found removes standalone Growth, Low-Vol ranking and direct Macro-Sector tilt. With score-proportional allocation it produced about **24.35% CAGR**, Sharpe **1.10** and max drawdown **-19.49%** over the 102-month research sample. This is explicitly **not a production forecast**: it was found after testing multiple variants and therefore receives a multiple-testing penalty.
+- Value + Momentum + Quality + Sector Rotation;
+- fixed `NEUTRAL` factor weights;
+- standalone Growth removed;
+- Low-Vol ranking removed;
+- direct Macro-Sector tilt removed;
+- Top 10;
+- **equal weight (10% each)**;
+- 10 bp cost per dollar traded.
 
-### Statistical anti-overfit gates
+Its 102-month reconstructed result is approximately:
 
-The repository now includes:
+| Portfolio | CAGR | Sharpe | Max drawdown |
+|---|---:|---:|---:|
+| **Static Neutral Equal — primary simple** | **23.21%** | **1.03** | **-20.78%** |
+| Dynamic Regime Equal — timing control | 24.25% | 1.10 | -19.44% |
+| Dynamic Regime Score — allocation control | 24.35% | 1.10 | -19.49% |
+| SPY | 13.96% | 0.85 | -23.31% |
 
-- `research_trial_ledger.csv` — records every strategy trial, including invalidated experiments;
+Why prefer the lower-CAGR static model as the research primary?
+
+- Dynamic Equal minus Static Neutral Equal is only about **+0.65 percentage points/year** in mean return.
+- Its 12-month block-bootstrap 95% interval is roughly **-2.13% to +3.81%**.
+- The probability that Dynamic is actually better in that bootstrap is only about **65%**.
+- Score-proportional minus Equal Weight is only about **+0.10 percentage points/year**, also with a confidence interval crossing zero.
+
+The simpler model therefore gets the benefit of the doubt until forward evidence proves that timing or score sizing adds value.
+
+### Robustness of the simple candidate
+
+For Static Neutral Equal:
+
+- block-bootstrap probability of positive SPY active return: about **99.77%**;
+- 36-month rolling SPY outperformance rate: **100%**;
+- 60-month rolling SPY outperformance rate: **100%**;
+- first-half CAGR: about **22.24%**;
+- second-half CAGR: about **24.18%**;
+- removing each full calendar year from 2018 through 2025 still leaves SPY outperformance in **8/8** tests;
+- worst leave-one-year-out CAGR advantage versus SPY is about **+6.80 percentage points/year**.
+
+This is still an in-sample research result, not a forecast.
+
+### What the factor tests currently say
+
+Evidence is strongest for **Value**. In the paired component study, retaining Value versus removing it increased annualized mean return by about **8.57 percentage points**, with a 12-month block-bootstrap 95% interval of approximately **+3.27% to +13.96%**.
+
+Momentum and Quality are positive but less decisive. The current standalone Growth score, Low-Vol ranking score and direct Macro-Sector tilt have negative point estimates, so they are excluded from the simplified research candidate.
+
+Sector Rotation is still retained, but its marginal contribution under the final simplified specification has not yet been isolated cleanly.
+
+## Statistical anti-overfit gates
+
+The repository includes:
+
+- `research_trial_ledger.csv` — records strategy trials, including invalidated experiments;
 - `research_validation.py` — block bootstrap, rolling windows and split-sample stability;
 - `research_overfit.py` — Deflated Sharpe Ratio and CSCV Probability of Backtest Overfitting;
 - `research_overfit_sensitivity.py` — sensitivity to assumed trial count and CSCV block count;
-- `component_attribution.py` — paired 12-month circular-block bootstrap for the marginal contribution of each component.
+- `component_attribution.py` — paired circular-block bootstrap for marginal component contribution;
+- `research_simple_report.py` — lightweight market-state, cost, allocation and leave-one-year-out diagnostics.
 
-A strategy is not promoted merely because it has the highest CAGR. The research workflow runs the matrix and all statistical diagnostics **atomically in the same Actions job**, so DSR/PBO cannot silently remain stale after the matrix changes.
+A strategy is not promoted merely because it has the highest CAGR. The historical research result remains **research-only** until forward evidence accumulates.
 
-Current component evidence from the bias-reduced sample is strongest for **Value**. Retaining Value versus removing it increased annualized mean return by about **8.57 percentage points**, with a 12-month block-bootstrap 95% interval of approximately **+3.27% to +13.96%**. Momentum and Quality are positive but less statistically decisive. The current standalone Growth score, Low-Vol ranking score and direct Macro-Sector tilt have negative point estimates, but these findings are still treated as hypotheses rather than universal factor conclusions.
+## Turnover and concentration
 
-## Point-in-time universe research
+The simplified Equal Weight Top-10 strategy retains an average of about **5.79 names** from one month to the next, so about **4.21 names are replaced each month**. The next turnover experiment is deliberately limited to one rule: buy Top 10, retain existing holdings while their rank remains within Top 15, and fill vacancies from the highest-ranked names.
 
-Current-member backtests have survivorship bias, so several independent reconstructions are audited under `data/research/`.
+The most frequently held historical names include DECK, ANET, NVDA, LRCX and KLAC. Information Technology accounts for roughly 26.6% of holding observations, with meaningful exposure also to Energy, Financials, Consumer Discretionary and Health Care.
 
-- `historical_universe_compare.py` — compares public reconstruction datasets;
-- `official_sp500_change_audit.py` — checks reconstructions against dated S&P Global constituent-change announcements;
-- `pitindex_audit.py` — cross-audits the `pitindex` event-driven free dataset against official changes and the monthly reconstruction;
-- `historical_price_coverage.py` — measures whether historical members have usable Yahoo price history;
-- `alternate_price_probe.py` — tests alternate free price routes without automatically mixing incompatible price-adjustment conventions.
+## Point-in-time data: pragmatic treatment
 
-A curated official S&P spot audit currently found the Pierre month-end reconstruction consistent on all 9 tested add/delete events, while the Hans snapshot series passed 4/9. This is a spot audit, not certification of the entire history.
+Historical membership and delisted-price handling are useful but are no longer the main research bottleneck. The repository keeps lightweight audits and documents the residual bias rather than attempting to reproduce every corporate action perfectly.
 
-The historical price problem remains harder: Yahoo retrieves nearly all observations for symbols it successfully transports, but a material group of old/delisted tickers cannot be fetched reliably. A point-in-time universe is therefore not considered production-safe until the delisted-price path is independently validated.
+A larger official S&P spot audit found the Pierre month-end reconstruction consistent on **30/30 tested add/delete events**. Yahoo remains imperfect for old/delisted symbols. These limitations are disclosed rather than treated as solved.
 
-## Macro vintages
-
-The current backtest uses conservative release lags, but most FRED series are still latest-vintage histories. FRED/ALFRED supports historical real-time periods and vintage dates through the official API. A future vintage-correct run should use those endpoints rather than assuming the latest revised history was known in the past.
+FRED histories are still largely latest-vintage with conservative release lags. ALFRED vintage data remains a possible later improvement, not a prerequisite for continuing the simpler strategy research.
 
 ## Forward out-of-sample protocol
 
-Historical optimization is not allowed to rewrite the forward record. A frozen shadow cohort was registered on **2026-08-21**. Its first genuinely unseen signal is the **2026-08 month-end** signal, executed on the next trading session. Future model changes must form a separately timestamped cohort rather than rewriting the old cohort.
+Historical optimization is not allowed to rewrite the forward record.
+
+- **r1** preserves the original broad frozen cohort created on 2026-08-21.
+- **r2-simple** freezes the new simplified comparison separately: `Static Neutral Equal` versus `Dynamic Regime Equal`.
+- Both start with the first genuinely unseen **2026-08 month-end** signal and next-session execution.
+- Later model-definition changes must create another cohort rather than rewriting r1/r2.
+
+No strategy is automatically promoted from a forward result.
 
 ## Research direction
 
-The next priority is not to generate more arbitrary parameter combinations. It is to reduce model and data uncertainty:
+Research is intentionally narrow now:
 
-1. finish point-in-time constituent validation;
-2. obtain a validated delisted-price path;
-3. replace revised macro history with ALFRED vintages where feasible;
-4. redesign Quality/Growth using academically established definitions rather than assuming one-year revenue/earnings growth is the correct quality-growth measure;
-5. separate stock-selection alpha from sector-allocation alpha;
-6. accumulate frozen forward observations.
+1. finish the already preregistered QMJ-inspired Quality test;
+2. test one Top-15 holding buffer to reduce turnover;
+3. accumulate r2 forward evidence for Static Neutral Equal versus Dynamic Regime Equal;
+4. do **not** add another timing model unless forward evidence gives a clear reason.
+
+The objective is no longer to maximize backtest CAGR by adding parameters. It is to keep the simplest model whose performance remains robust.
 
 ## Local setup
 
@@ -163,9 +204,8 @@ python test_forward_shadow.py
 
 - Rankings are research outputs, not guarantees or investment instructions.
 - Yahoo/yfinance can throttle, change endpoints or fail for delisted securities.
-- Current-member historical tests retain survivorship bias until the PIT universe is promoted.
+- Current-member historical tests retain survivorship bias until a PIT universe is used end-to-end.
 - Latest-vintage FRED values can retain revision bias until ALFRED vintages are used.
 - Current GICS sector labels are not automatically point-in-time classifications.
 - REIT / Financial accounting requires sector-specific treatment; standardized FFO/AFFO is not yet robust.
-- Analyst estimates, forward EPS revisions, options, short interest and issuer-level credit are not yet included because reliable point-in-time free data is not established.
 - Every added strategy variant increases the multiple-testing burden and must be recorded in the trial ledger.
