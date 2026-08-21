@@ -8,6 +8,8 @@ on:
       - "research_macro_detail.py"
       - "research_static_contribution.py"
       - "research_winner_stress.py"
+      - "research_simple_primary_overfit.py"
+      - "research_trial_ledger.csv"
       - ".github/workflows/research-static-equal.yml"
   workflow_dispatch:
 
@@ -29,13 +31,14 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -r requirements.txt
-      - run: python -m py_compile research_static_equal.py research_static_equal_validate.py research_macro_detail.py research_static_contribution.py research_winner_stress.py
+      - run: python -m py_compile research_static_equal.py research_static_equal_validate.py research_macro_detail.py research_static_contribution.py research_winner_stress.py research_simple_primary_overfit.py
       - run: |
           python research_static_equal.py
           python research_static_equal_validate.py
           python research_macro_detail.py
           python research_static_contribution.py
           python research_winner_stress.py
+          python research_simple_primary_overfit.py
       - name: Publish results
         run: |
           git config user.name "github-actions[bot]"
@@ -59,7 +62,10 @@ jobs:
             data/research_backtest/static_equal_sector_contribution.csv \
             data/research_backtest/static_equal_contribution_summary.csv \
             data/research_backtest/static_equal_winner_stress.csv \
-            data/research_backtest/static_equal_winner_stress_monthly.csv
+            data/research_backtest/static_equal_winner_stress_monthly.csv \
+            data/research_backtest/simple_primary_dsr_sensitivity.csv \
+            data/research_backtest/simple_primary_pbo_sensitivity.csv \
+            data/research_backtest/simple_primary_overfit_status.csv
           if git diff --cached --quiet; then
             echo "No static-equal result changes."
             exit 0
