@@ -1,0 +1,90 @@
+name: Research Backtest Matrix
+
+on:
+  push:
+    paths:
+      - ".github/workflows/research-backtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-backtest-matrix
+  cancel-in-progress: true
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Restore research data cache
+        uses: actions/cache@v4
+        with:
+          path: .cache_sp500_screener
+          key: research-backtest-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            backtest-v2-${{ runner.os }}-
+            backtest-${{ runner.os }}-
+            screener-${{ runner.os }}-
+
+      - name: Validate code
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          test -n "$SEC_USER_AGENT"
+          python -m py_compile screener.py backtest.py backtest_v2.py research_backtest.py portfolio_constraints.py
+          python test_offline.py
+          python test_constraints.py
+
+      - name: Run research matrix
+        env:
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+        run: |
+          python research_backtest.py \
+            --start 2018-01-01 \
+            --end 2026-07-31 \
+            --cost-bps 10 \
+            --min-valid-weight 0.95 \
+            --output-dir data/research_backtest
+
+      - name: Upload research artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: research-backtest-${{ github.run_id }}
+          path: data/research_backtest/
+          retention-days: 30
+
+      - name: Publish research results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/research_backtest
+          if git diff --cached --quiet; then
+            echo "No research result changes."
+            exit 0
+          fi
+          git commit -m "data: update research backtest matrix"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+          exit 1
