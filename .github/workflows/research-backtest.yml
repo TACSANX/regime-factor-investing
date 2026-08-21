@@ -6,6 +6,8 @@ on:
       - ".github/workflows/research-backtest.yml"
       - "research_backtest.py"
       - "research_candidates.py"
+      - "quality_research.py"
+      - "test_quality_research.py"
       - "research_validation.py"
       - "research_overfit.py"
       - "research_overfit_sensitivity.py"
@@ -56,10 +58,12 @@ jobs:
           test -n "$SEC_USER_AGENT"
           python -m py_compile \
             screener.py backtest.py backtest_v2.py portfolio_constraints.py \
-            research_backtest.py research_candidates.py research_validation.py \
-            research_overfit.py research_overfit_sensitivity.py component_attribution.py
+            research_backtest.py research_candidates.py quality_research.py \
+            research_validation.py research_overfit.py research_overfit_sensitivity.py \
+            component_attribution.py test_quality_research.py
           python test_offline.py
           python test_constraints.py
+          python test_quality_research.py
 
       - name: Run research matrix
         env:

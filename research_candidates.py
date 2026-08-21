@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 
 import research_backtest as rb
+import quality_research  # noqa: F401  # installs research-only QMJ proxy hooks
 
 
 _original_score_variants = rb.score_variants
@@ -31,22 +32,27 @@ def _static_neutral_no_growth_low_vol(config: dict) -> dict:
     return c
 
 
+def _qmj_proxy_candidate(config: dict) -> dict:
+    # Pre-registered trial 21: keep the best-discovered factor set and sizing,
+    # but replace the old quality factor with the QMJ-inspired proxy. Growth,
+    # low-vol ranking and direct macro-sector tilt remain zero so only the
+    # quality definition changes relative to trial 20.
+    c = _zero_many(config, ["growth", "low_vol", "macro_sector"])
+    c["_research_quality_column"] = "quality_qmj_proxy"
+    return c
+
+
 def score_variants(config: dict) -> dict[str, dict]:
     variants = _original_score_variants(config)
     variants["no_growth_low_vol"] = _zero_many(config, ["growth", "low_vol"])
     variants["no_growth_low_vol_macro_sector"] = _zero_many(config, ["growth", "low_vol", "macro_sector"])
     variants["static_neutral_no_growth_low_vol"] = _static_neutral_no_growth_low_vol(config)
+    variants["qmj_proxy_no_growth_low_vol_macro_sector"] = _qmj_proxy_candidate(config)
     return variants
 
 
 def strategy_specs() -> list[dict]:
     specs = _original_strategy_specs()
-    # Interaction hypotheses were registered before their first rerun.  The two
-    # allocation-decomposition variants below were subsequently registered in
-    # research_trial_ledger.csv before being added here.  They answer a narrower
-    # question: is the apparent improvement from the factor ranking, or from the
-    # inverse-volatility sizing that remains even when the low_vol ranking factor
-    # is zeroed?  These remain research-only regardless of the headline CAGR.
     specs.extend([
         {
             "strategy": "hyp_no_growth_low_vol_n10",
@@ -82,6 +88,13 @@ def strategy_specs() -> list[dict]:
             "n": 10,
             "allocation": "score",
             "category": "allocation_decomposition",
+        },
+        {
+            "strategy": "hyp_qmj_proxy_no_growth_low_vol_macro_sector_n10_score",
+            "score_variant": "qmj_proxy_no_growth_low_vol_macro_sector",
+            "n": 10,
+            "allocation": "score",
+            "category": "quality_hypothesis",
         },
     ])
     return specs
