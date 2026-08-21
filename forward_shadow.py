@@ -10,6 +10,18 @@ import numpy as np
 import pandas as pd
 import yaml
 
+SIGNAL_COLUMNS = [
+    "cohort", "frozen_commit", "signal_date", "strategy", "regime", "Symbol",
+    "Yahoo Symbol", "Security", "GICS Sector", "score", "weight",
+    "execution_date", "traded_notional", "cost_bps_per_dollar_traded",
+]
+RETURN_COLUMNS = [
+    "cohort", "strategy", "signal_date", "execution_date", "next_signal_date",
+    "exit_execution_date", "gross_return", "net_return", "traded_notional",
+    "transaction_cost", "spy_return", "rsp_return", "active_return_vs_spy",
+    "valid_weight_fraction",
+]
+
 
 def load_frozen_modules(model_root: Path):
     sys.path.insert(0, str(model_root.resolve()))
@@ -21,10 +33,17 @@ def load_frozen_modules(model_root: Path):
     return sc, bt, v2, rb, rc
 
 
-def load_csv(path: Path, columns: list[str] | None = None) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame(columns=columns or [])
-    return pd.read_csv(path)
+def load_csv(path: Path, columns: list[str]) -> pd.DataFrame:
+    if not path.exists() or path.stat().st_size == 0:
+        return pd.DataFrame(columns=columns)
+    try:
+        df = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return pd.DataFrame(columns=columns)
+    for c in columns:
+        if c not in df.columns:
+            df[c] = np.nan
+    return df[columns]
 
 
 def target_period(now_jst: datetime) -> pd.Period:
@@ -80,7 +99,7 @@ def append_targets(
     if not signals.empty:
         existing = signals[
             (signals["cohort"].astype(str) == cohort)
-            & (pd.to_datetime(signals["signal_date"]) == signal_date)
+            & (pd.to_datetime(signals["signal_date"], errors="coerce") == signal_date)
         ]
         if not existing.empty:
             print(f"Targets already registered for {signal_date.date()} ({cohort})", flush=True)
@@ -137,7 +156,7 @@ def append_targets(
                 "traded_notional": np.nan,
                 "cost_bps_per_dollar_traded": float(registry["transaction_cost_bps_per_dollar_traded"]),
             })
-    new = pd.DataFrame(rows)
+    new = pd.DataFrame(rows, columns=SIGNAL_COLUMNS)
     print(
         f"Registered {len(wanted)} frozen strategies for signal {signal_date.date()} regime={macro.regime}",
         flush=True,
@@ -145,11 +164,15 @@ def append_targets(
     return pd.concat([signals, new], ignore_index=True)
 
 
+def _all_dates_filled(series: pd.Series) -> bool:
+    return bool(pd.to_datetime(series, errors="coerce").notna().all()) if len(series) else False
+
+
 def finalize_executions(signals: pd.DataFrame, open_px: pd.DataFrame, v2) -> pd.DataFrame:
     if signals.empty:
         return signals
     out = signals.copy()
-    out["signal_date"] = pd.to_datetime(out["signal_date"])
+    out["signal_date"] = pd.to_datetime(out["signal_date"], errors="coerce")
     signal_dates = sorted(out["signal_date"].dropna().unique())
 
     for i, sd_raw in enumerate(signal_dates):
@@ -161,25 +184,23 @@ def finalize_executions(signals: pd.DataFrame, open_px: pd.DataFrame, v2) -> pd.
         current_mask = out["signal_date"].eq(sd)
         for strategy in out.loc[current_mask, "strategy"].drop_duplicates():
             mask = current_mask & out["strategy"].eq(strategy)
-            if out.loc[mask, "execution_date"].astype(str).str.len().gt(0).all() and out.loc[mask, "traded_notional"].notna().all():
+            if _all_dates_filled(out.loc[mask, "execution_date"]) and out.loc[mask, "traded_notional"].notna().all():
                 continue
             target = dict(zip(out.loc[mask, "Yahoo Symbol"], out.loc[mask, "weight"].astype(float)))
             prev_end = None
             if i > 0:
                 prev_sd = pd.Timestamp(signal_dates[i - 1])
                 pmask = out["signal_date"].eq(prev_sd) & out["strategy"].eq(strategy)
-                if pmask.any():
-                    prev_exec_values = out.loc[pmask, "execution_date"].astype(str)
-                    if prev_exec_values.str.len().gt(0).all():
-                        prev_exec = pd.Timestamp(prev_exec_values.iloc[0])
-                        prev_target = dict(zip(out.loc[pmask, "Yahoo Symbol"], out.loc[pmask, "weight"].astype(float)))
-                        rets = {}
-                        for symbol in prev_target:
-                            r = price_return(v2, open_px, symbol, prev_exec, exec_date)
-                            if np.isfinite(r):
-                                rets[symbol] = r
-                        if sum(prev_target[s] for s in rets) >= 0.95:
-                            prev_end = end_weights(prev_target, rets)
+                if pmask.any() and _all_dates_filled(out.loc[pmask, "execution_date"]):
+                    prev_exec = pd.to_datetime(out.loc[pmask, "execution_date"], errors="coerce").iloc[0]
+                    prev_target = dict(zip(out.loc[pmask, "Yahoo Symbol"], out.loc[pmask, "weight"].astype(float)))
+                    rets = {}
+                    for symbol in prev_target:
+                        r = price_return(v2, open_px, symbol, pd.Timestamp(prev_exec), exec_date)
+                        if np.isfinite(r):
+                            rets[symbol] = r
+                    if sum(prev_target[s] for s in rets) >= 0.95:
+                        prev_end = end_weights(prev_target, rets)
             tn = traded_notional(target, prev_end)
             out.loc[mask, "execution_date"] = exec_date.date().isoformat()
             out.loc[mask, "traded_notional"] = tn
@@ -191,7 +212,7 @@ def realize_periods(signals: pd.DataFrame, returns: pd.DataFrame, open_px: pd.Da
     if signals.empty:
         return returns
     sig = signals.copy()
-    sig["signal_date"] = pd.to_datetime(sig["signal_date"])
+    sig["signal_date"] = pd.to_datetime(sig["signal_date"], errors="coerce")
     signal_dates = sorted(sig["signal_date"].dropna().unique())
     existing = set()
     if not returns.empty:
@@ -210,16 +231,14 @@ def realize_periods(signals: pd.DataFrame, returns: pd.DataFrame, open_px: pd.Da
             nmask = sig["signal_date"].eq(nd) & sig["strategy"].eq(strategy)
             if not nmask.any():
                 continue
-            pexecs = sig.loc[pmask, "execution_date"].astype(str)
-            nexecs = sig.loc[nmask, "execution_date"].astype(str)
-            if not pexecs.str.len().gt(0).all() or not nexecs.str.len().gt(0).all():
+            if not _all_dates_filled(sig.loc[pmask, "execution_date"]) or not _all_dates_filled(sig.loc[nmask, "execution_date"]):
                 continue
-            start_exec = pd.Timestamp(pexecs.iloc[0])
-            end_exec = pd.Timestamp(nexecs.iloc[0])
+            start_exec = pd.to_datetime(sig.loc[pmask, "execution_date"], errors="coerce").iloc[0]
+            end_exec = pd.to_datetime(sig.loc[nmask, "execution_date"], errors="coerce").iloc[0]
             target = dict(zip(sig.loc[pmask, "Yahoo Symbol"], sig.loc[pmask, "weight"].astype(float)))
             indiv = {}
             for symbol in target:
-                r = price_return(v2, open_px, symbol, start_exec, end_exec)
+                r = price_return(v2, open_px, symbol, pd.Timestamp(start_exec), pd.Timestamp(end_exec))
                 if np.isfinite(r):
                     indiv[symbol] = r
             valid_weight = float(sum(target[s] for s in indiv))
@@ -227,17 +246,20 @@ def realize_periods(signals: pd.DataFrame, returns: pd.DataFrame, open_px: pd.Da
                 print(f"Cannot realize {strategy} {sd.date()}: valid weight={valid_weight:.1%}", flush=True)
                 continue
             gross = float(sum(target[s] * indiv[s] for s in indiv) / valid_weight)
-            tn = float(sig.loc[pmask, "traded_notional"].dropna().iloc[0])
+            tn_values = pd.to_numeric(sig.loc[pmask, "traded_notional"], errors="coerce").dropna()
+            if tn_values.empty:
+                continue
+            tn = float(tn_values.iloc[0])
             cost = tn * cost_rate
-            spy_ret = price_return(v2, open_px, "SPY", start_exec, end_exec)
-            rsp_ret = price_return(v2, open_px, "RSP", start_exec, end_exec)
+            spy_ret = price_return(v2, open_px, "SPY", pd.Timestamp(start_exec), pd.Timestamp(end_exec))
+            rsp_ret = price_return(v2, open_px, "RSP", pd.Timestamp(start_exec), pd.Timestamp(end_exec))
             rows.append({
                 "cohort": str(registry["cohort"]),
                 "strategy": strategy,
                 "signal_date": sd.date().isoformat(),
-                "execution_date": start_exec.date().isoformat(),
+                "execution_date": pd.Timestamp(start_exec).date().isoformat(),
                 "next_signal_date": nd.date().isoformat(),
-                "exit_execution_date": end_exec.date().isoformat(),
+                "exit_execution_date": pd.Timestamp(end_exec).date().isoformat(),
                 "gross_return": gross,
                 "net_return": gross - cost,
                 "traded_notional": tn,
@@ -249,7 +271,7 @@ def realize_periods(signals: pd.DataFrame, returns: pd.DataFrame, open_px: pd.Da
             })
             print(f"Realized {strategy} {sd.date()}->{nd.date()}: net={gross - cost:+.2%}", flush=True)
     if rows:
-        returns = pd.concat([returns, pd.DataFrame(rows)], ignore_index=True)
+        returns = pd.concat([returns, pd.DataFrame(rows, columns=RETURN_COLUMNS)], ignore_index=True)
     return returns
 
 
@@ -270,11 +292,16 @@ def main() -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     signals_path = outdir / "signals.csv"
     returns_path = outdir / "returns.csv"
-    signals = load_csv(signals_path)
-    returns = load_csv(returns_path)
+    signals = load_csv(signals_path, SIGNAL_COLUMNS)
+    returns = load_csv(returns_path, RETURN_COLUMNS)
 
     now_jst = datetime.now(ZoneInfo("Asia/Tokyo"))
     period = target_period(now_jst)
+    start_period = pd.Period(str(registry["start_with_next_unseen_month"]), freq="M")
+    if period < start_period:
+        print(f"Forward cohort not started: target={period}, starts={start_period}", flush=True)
+        return
+
     min_start = period.start_time - pd.Timedelta(days=430)
     if not signals.empty:
         old_dates = pd.to_datetime(signals["signal_date"], errors="coerce").dropna()
@@ -282,7 +309,7 @@ def main() -> None:
             min_start = min(min_start, old_dates.min() - pd.Timedelta(days=10))
 
     universe = sc.get_universe(cache, float(config.get("cache_hours", {}).get("universe", 12)), None)
-    prior_yahoo = signals["Yahoo Symbol"].dropna().astype(str).tolist() if "Yahoo Symbol" in signals.columns else []
+    prior_yahoo = signals["Yahoo Symbol"].dropna().astype(str).tolist() if not signals.empty else []
     symbols = universe["Yahoo Symbol"].tolist() + prior_yahoo + ["SPY", "RSP"] + list(config["sector_etfs"].values())
     symbols = list(dict.fromkeys(symbols))
     end = pd.Timestamp(now_jst.date()) + pd.Timedelta(days=2)
