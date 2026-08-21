@@ -29,6 +29,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Mark run started
+        run: |
+          mkdir -p data/backtest
+          printf 'RUNNING\nrun_id=%s\nstarted_utc=%s\n' "${{ github.run_id }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > data/backtest/status.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- data/backtest/status.txt
+          git commit -m "data: mark historical backtest running"
+          git push origin HEAD:main
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -70,6 +80,11 @@ jobs:
           ) 2>&1 | tee data/backtest/run.log
           code=${PIPESTATUS[0]}
           echo "$code" > data/backtest/exit_code.txt
+          if [ "$code" -eq 0 ]; then
+            printf 'SUCCESS\nrun_id=%s\nfinished_utc=%s\n' "${{ github.run_id }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > data/backtest/status.txt
+          else
+            printf 'FAILED\nrun_id=%s\nexit_code=%s\nfinished_utc=%s\n' "${{ github.run_id }}" "$code" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > data/backtest/status.txt
+          fi
           exit "$code"
 
       - name: Upload backtest artifact
