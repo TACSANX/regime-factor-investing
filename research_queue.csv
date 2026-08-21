@@ -1,0 +1,4 @@
+priority,hypothesis,status,reason
+1,static_neutral_no_growth_low_vol_macro_sector_n10_score,queued,"Isolate the value of dynamic macro regime weights by comparing with the current primary candidate under the same top-10 score-proportional allocation and the same factor set."
+2,factor_momentum_timing_simple,queued_after_priority_1,"Only if dynamic macro timing adds little value: test a simple factor-momentum timing rule instead of adding more macro variables. Keep hyperparameters minimal and preregister before running."
+3,qmj_proxy_quality,already_running_or_pending,"Compare the QMJ-inspired quality proxy with the existing quality definition while keeping the simplified factor set fixed. Do not add more Quality variants until this result is known."
