@@ -1,0 +1,48 @@
+name: Research Validation
+
+on:
+  push:
+    paths:
+      - ".github/workflows/research-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install pandas numpy
+      - run: python -m py_compile research_validation.py
+      - run: python research_validation.py
+      - name: Publish validation results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            data/research_backtest/bootstrap_significance.csv \
+            data/research_backtest/validation.csv \
+            data/research_backtest/rolling_windows.csv \
+            data/research_backtest/rolling_summary.csv \
+            data/research_backtest/reality_check_proxy.csv \
+            data/research_backtest/validation_status.csv
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "data: update research validation"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
