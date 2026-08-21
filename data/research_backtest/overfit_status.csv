@@ -1,0 +1,2 @@
+best_dsr_strategy,best_dsr_probability,any_dsr_95pct,cscv_pbo,pbo_below_0_20,production_gate,note
+hyp_no_growth_low_vol_macro_sector_n10,0.5928415279295952,False,0.07142857142857142,True,FAIL,"Statistical overfit gate only; point-in-time universe, delisted-price coverage, and macro-vintage gates remain separate requirements."
