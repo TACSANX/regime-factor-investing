@@ -6,21 +6,24 @@ import pandas as pd
 
 ROOT = Path("data/research_backtest")
 
+# Prefer the simpler allocation when its incremental return versus the more
+# complex alternative is not statistically distinguishable. This is a research
+# shortlist only; it does not promote anything to live use.
 SHORTLIST = [
     (
-        "primary",
+        "primary_simple",
+        "hyp_no_growth_low_vol_macro_sector_n10_equal",
+        "Simplified primary research candidate: Value + Momentum + Quality + Sector Rotation, dynamic regime factor weights, no standalone Growth, no Low-Vol ranking, no direct Macro-Sector tilt, equal-weight top 10.",
+    ),
+    (
+        "score_allocation_control",
         "hyp_no_growth_low_vol_macro_sector_n10_score",
-        "Main simplified candidate: keep Value, Momentum, Quality and Sector Rotation; remove standalone Growth, Low-Vol ranking and direct Macro-Sector tilt.",
+        "Same ranking and macro definition as the primary candidate, but score-proportional sizing. Retained as the allocation control because its return advantage over equal weight is very small and statistically indistinguishable.",
     ),
     (
-        "macro_control",
+        "macro_control_provisional",
         "hyp_static_neutral_no_growth_low_vol_n10",
-        "Control for dynamic macro regime weighting: same simplified factor removals with fixed Neutral regime weights.",
-    ),
-    (
-        "legacy_control",
-        "full_dynamic_n10_score",
-        "Original complex all-factor control retained as a reference baseline.",
+        "Provisional fixed-Neutral macro control. Allocation is still inverse-vol, so the queued same-score-allocation static trial is required for a clean macro conclusion.",
     ),
 ]
 
