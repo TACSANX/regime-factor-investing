@@ -2,19 +2,13 @@ name: Historical Backtest
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "backtest.py"
-      - ".github/workflows/backtest.yml"
-      - "config.yaml"
-      - "screener.py"
 
 permissions:
   contents: write
 
 concurrency:
   group: historical-backtest
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   backtest:
