@@ -41,10 +41,12 @@ def score_variants(config: dict) -> dict[str, dict]:
 
 def strategy_specs() -> list[dict]:
     specs = _original_strategy_specs()
-    # Exploratory interaction hypotheses identified before this rerun from the
-    # one-factor ablations. They are intentionally labelled as hypotheses and
-    # must pass the same bootstrap / rolling / multiple-testing gates as every
-    # other variant. They are NOT automatically promoted to the live model.
+    # Interaction hypotheses were registered before their first rerun.  The two
+    # allocation-decomposition variants below were subsequently registered in
+    # research_trial_ledger.csv before being added here.  They answer a narrower
+    # question: is the apparent improvement from the factor ranking, or from the
+    # inverse-volatility sizing that remains even when the low_vol ranking factor
+    # is zeroed?  These remain research-only regardless of the headline CAGR.
     specs.extend([
         {
             "strategy": "hyp_no_growth_low_vol_n10",
@@ -66,6 +68,20 @@ def strategy_specs() -> list[dict]:
             "n": 10,
             "allocation": "invvol",
             "category": "interaction_hypothesis",
+        },
+        {
+            "strategy": "hyp_no_growth_low_vol_macro_sector_n10_equal",
+            "score_variant": "no_growth_low_vol_macro_sector",
+            "n": 10,
+            "allocation": "equal",
+            "category": "allocation_decomposition",
+        },
+        {
+            "strategy": "hyp_no_growth_low_vol_macro_sector_n10_score",
+            "score_variant": "no_growth_low_vol_macro_sector",
+            "n": 10,
+            "allocation": "score",
+            "category": "allocation_decomposition",
         },
     ])
     return specs
