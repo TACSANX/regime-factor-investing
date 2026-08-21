@@ -1,0 +1,19 @@
+cohort: 2026-08-21-r2-simple
+frozen_commit: 7f3818b84868cfc0a1109d671e2dd69b20814efe
+frozen_on: 2026-08-21
+benchmark: SPY
+secondary_benchmark: RSP
+rebalance: monthly
+signal: last US trading-session close of prior calendar month
+execution: next US trading-session adjusted open
+transaction_cost_bps_per_dollar_traded: 10
+start_with_next_unseen_month: 2026-08
+promotion_policy: >-
+  Shadow results are forward evidence only. No strategy is promoted automatically.
+  This r2 cohort is never rewritten; later model-definition changes create another cohort.
+strategies:
+  - name: static_neutral_equal_primary
+    source_strategy: hyp_static_neutral_no_growth_low_vol_n10
+    allocation_override: equal
+  - name: dynamic_regime_equal_control
+    source_strategy: hyp_no_growth_low_vol_macro_sector_n10_equal
