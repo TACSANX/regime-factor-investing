@@ -37,26 +37,36 @@ jobs:
             research_simple_primary_overfit.py \
             research_simple_primary_relative_risk.py \
             research_static_cost.py
-      - name: Run diagnostics from committed research data
+      - name: Run diagnostics and persist status
+        id: diagnostics
+        continue-on-error: true
         run: |
-          python research_winner_stress.py
-          python research_simple_primary_overfit.py
-          python research_simple_primary_relative_risk.py
-          python research_static_cost.py
-      - name: Publish diagnostics
+          mkdir -p data/research_backtest
+          : > data/research_backtest/static_diagnostics.log
+          : > data/research_backtest/static_diagnostics_status.txt
+          overall=0
+          for script in \
+            research_winner_stress.py \
+            research_simple_primary_overfit.py \
+            research_simple_primary_relative_risk.py \
+            research_static_cost.py
+          do
+            echo "=== ${script} ===" | tee -a data/research_backtest/static_diagnostics.log
+            set +e
+            python "$script" >> data/research_backtest/static_diagnostics.log 2>&1
+            code=$?
+            set -e
+            echo "${script}=${code}" | tee -a data/research_backtest/static_diagnostics_status.txt
+            if [ "$code" -ne 0 ]; then overall=1; fi
+          done
+          echo "overall=${overall}" | tee -a data/research_backtest/static_diagnostics_status.txt
+          exit "$overall"
+      - name: Publish diagnostics and failure evidence
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- \
-            data/research_backtest/static_equal_winner_stress.csv \
-            data/research_backtest/static_equal_winner_stress_monthly.csv \
-            data/research_backtest/simple_primary_dsr_sensitivity.csv \
-            data/research_backtest/simple_primary_pbo_sensitivity.csv \
-            data/research_backtest/simple_primary_overfit_status.csv \
-            data/research_backtest/simple_primary_relative_path.csv \
-            data/research_backtest/simple_primary_relative_rolling.csv \
-            data/research_backtest/simple_primary_relative_risk.csv \
-            data/research_backtest/static_equal_cost_sensitivity.csv
+          git add -A -- data/research_backtest
           if git diff --cached --quiet; then
             echo "No diagnostic changes."
             exit 0
@@ -69,3 +79,6 @@ jobs:
             sleep $((attempt * 2))
           done
           exit 1
+      - name: Fail if a diagnostic failed
+        if: steps.diagnostics.outcome == 'failure'
+        run: exit 1
