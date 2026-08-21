@@ -1,0 +1,70 @@
+name: Static Primary Diagnostics
+
+on:
+  push:
+    paths:
+      - "research_winner_stress.py"
+      - "research_simple_primary_overfit.py"
+      - "research_simple_primary_relative_risk.py"
+      - "research_static_cost.py"
+      - "research_trial_ledger.csv"
+      - ".github/workflows/research-static-diagnostics.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: research-static-diagnostics
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Validate diagnostics
+        run: |
+          python -m py_compile \
+            research_winner_stress.py \
+            research_simple_primary_overfit.py \
+            research_simple_primary_relative_risk.py \
+            research_static_cost.py
+      - name: Run diagnostics from committed research data
+        run: |
+          python research_winner_stress.py
+          python research_simple_primary_overfit.py
+          python research_simple_primary_relative_risk.py
+          python research_static_cost.py
+      - name: Publish diagnostics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            data/research_backtest/static_equal_winner_stress.csv \
+            data/research_backtest/static_equal_winner_stress_monthly.csv \
+            data/research_backtest/simple_primary_dsr_sensitivity.csv \
+            data/research_backtest/simple_primary_pbo_sensitivity.csv \
+            data/research_backtest/simple_primary_overfit_status.csv \
+            data/research_backtest/simple_primary_relative_path.csv \
+            data/research_backtest/simple_primary_relative_rolling.csv \
+            data/research_backtest/simple_primary_relative_risk.csv \
+            data/research_backtest/static_equal_cost_sensitivity.csv
+          if git diff --cached --quiet; then
+            echo "No diagnostic changes."
+            exit 0
+          fi
+          git commit -m "data: update static-primary diagnostics"
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
