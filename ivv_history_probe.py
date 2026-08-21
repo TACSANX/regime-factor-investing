@@ -8,14 +8,15 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-URL = "https://www.ishares.com/us/products/239726/ishares-core-sp-500-etf/1467271812596.ajax"
+URLS = {
+    "legacy_ajax": "https://www.ishares.com/us/products/239726/ishares-core-sp-500-etf/1467271812596.ajax",
+    "latest_csv": "https://www.ishares.com/us/products/239726/ishares-core-s-p-500-etf/latest-holdings.csv",
+}
 DATES = ["20180131", "20181231", "20201231", "20221230", "20241231", "20251231"]
 OUT = Path("data/research")
 
 
 def inspect_csv(content: bytes) -> dict:
-    # iShares CSVs have metadata lines before the holdings table and may include
-    # a UTF-8 BOM.  Do not assume a fixed number of metadata rows.
     text = content.decode("utf-8-sig", errors="replace")
     lines = text.splitlines()
     header_idx = None
@@ -42,6 +43,7 @@ def inspect_csv(content: bytes) -> dict:
             pass
     return {
         "content_bytes": len(content),
+        "looks_like_html": text.lstrip().lower().startswith("<!doctype html") or text.lstrip().lower().startswith("<html"),
         "header_found": header_idx is not None,
         "holdings_date_text": holdings_date,
         "parsed_rows": rows,
@@ -54,21 +56,20 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     rows = []
     headers = {"User-Agent": "regime-factor-investing research probe"}
-    for date in DATES:
-        params = {
-            "fileType": "csv",
-            "fileName": "IVV_holdings",
-            "dataType": "fund",
-            "asOfDate": date,
-        }
-        try:
-            r = requests.get(URL, params=params, headers=headers, timeout=30)
-            rec = {"requested_as_of": date, "status_code": r.status_code, "final_url": r.url}
-            rec.update(inspect_csv(r.content))
-        except Exception as exc:
-            rec = {"requested_as_of": date, "status_code": -1, "error": repr(exc)}
-        rows.append(rec)
-        print(rec, flush=True)
+    for endpoint, url in URLS.items():
+        for date in DATES:
+            if endpoint == "legacy_ajax":
+                params = {"fileType": "csv", "fileName": "IVV_holdings", "dataType": "fund", "asOfDate": date}
+            else:
+                params = {"asOfDate": date}
+            try:
+                r = requests.get(url, params=params, headers=headers, timeout=30)
+                rec = {"endpoint": endpoint, "requested_as_of": date, "status_code": r.status_code, "final_url": r.url}
+                rec.update(inspect_csv(r.content))
+            except Exception as exc:
+                rec = {"endpoint": endpoint, "requested_as_of": date, "status_code": -1, "error": repr(exc)}
+            rows.append(rec)
+            print(rec, flush=True)
     pd.DataFrame(rows).to_csv(OUT / "ivv_history_probe.csv", index=False, quoting=csv.QUOTE_MINIMAL)
 
 
