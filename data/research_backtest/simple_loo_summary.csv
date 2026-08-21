@@ -1,0 +1,3 @@
+strategy,omissions,min_cagr_excess_vs_spy,median_cagr_excess_vs_spy,max_cagr_excess_vs_spy,positive_excess_rate,all_omissions_positive_excess
+hyp_no_growth_low_vol_macro_sector_n10_score,8,0.07051353794809878,0.10465338640502242,0.12764284443114704,1.0,True
+hyp_no_growth_low_vol_macro_sector_n10_equal,8,0.06917863831710869,0.1039075744137995,0.12637574435942112,1.0,True
