@@ -1,42 +1,43 @@
 === research_winner_stress.py ===
-Traceback (most recent call last):
-  File "/home/runner/work/regime-factor-investing/regime-factor-investing/research_winner_stress.py", line 128, in <module>
-    main()
-  File "/home/runner/work/regime-factor-investing/regime-factor-investing/research_winner_stress.py", line 121, in main
-    raise RuntimeError(f"Baseline stress reconstruction mismatch: max abs {max_abs}")
-RuntimeError: Baseline stress reconstruction mismatch: max abs 1.5096520271026814e-07
+                   stress_case        excluded_symbols        excluded_sector  months  avg_names  min_names  avg_monthly_traded_notional     cagr  spy_cagr  cagr_excess_vs_spy  sharpe_0rf  max_drawdown
+              baseline_rebuilt                                                    102  10.000000         10                     0.871642 0.232093  0.139625            0.092468    1.025774     -0.207823
+           exclude_expost_top1                    NVDA                            102   9.578431          9                     0.895080 0.212397  0.139625            0.072773    0.972489     -0.203960
+           exclude_expost_top3          DECK;KLAC;NVDA                            102   8.843137          7                     0.936550 0.182389  0.139625            0.042764    0.857455     -0.198732
+           exclude_expost_top5 DECK;DVN;HOOD;KLAC;NVDA                            102   8.617647          7                     0.936392 0.167179  0.139625            0.027554    0.818592     -0.215010
+exclude_information_technology                         Information Technology     102   7.098039          1                     1.073789 0.134702  0.139625           -0.004923    0.708928     -0.206328
+Baseline reconstruction max abs difference: 1.510e-07
 === research_simple_primary_overfit.py ===
                                                     strategy  matrix_candidates_including_simple  trial_count_assumed  ledger_trial_floor  active_sharpe_annualized  selection_threshold_annualized  dsr_probability  passes_95pct
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  20                   20                  22                  0.552159                        0.564834         0.485064         False
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  20                   22                  22                  0.552159                        0.577207         0.470505         False
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  20                   25                  22                  0.552159                        0.593494         0.451403         False
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  20                   50                  22                  0.552159                        0.676450         0.356734         False
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  20                  100                  22                  0.552159                        0.752020         0.277439         False
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  21                   21                  22                  0.552159                        0.571793         0.476872         False
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  21                   22                  22                  0.552159                        0.577813         0.469793         False
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  21                   25                  22                  0.552159                        0.594117         0.450673         False
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  21                   50                  22                  0.552159                        0.677161         0.355951         False
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                                  21                  100                  22                  0.552159                        0.752810         0.276657         False
 
 PBO sensitivity:
  candidate_count  common_months  blocks  splits      pbo  median_oos_relative_rank  median_logit                                                                                                interpretation
-              20            102       6      20 0.150000                     0.825      1.550597 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
-              20            102       8      70 0.042857                     0.875      1.945910 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
-              20            102      10     252 0.103175                     0.825      1.550597 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
+              21            102       6      20 0.350000                  0.714286      0.919219 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
+              21            102       8      70 0.071429                  0.833333      1.609438 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
+              21            102      10     252 0.174603                  0.738095      1.036092 PBO is the fraction of CSCV splits where the in-sample winner ranks at/below the OOS median; lower is better.
 
 Status:
                                                     strategy  trial_ledger_floor  dsr_probability_at_ledger_floor  dsr_passes_95pct_at_ledger_floor  pbo_below_0_20_all_block_scenarios research_statistical_gate                                                                                                                note
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                  22                         0.470505                             False                                True                      FAIL Diagnostic only; correlated strategy trials make DSR approximate. Forward OOS remains the decisive validation path.
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed                  22                         0.469793                             False                               False                      FAIL Diagnostic only; correlated strategy trials make DSR approximate. Forward OOS remains the decisive validation path.
 === research_simple_primary_relative_risk.py ===
  months  max_relative_drawdown_vs_spy max_relative_drawdown_date  longest_consecutive_months_underperforming_spy  monthly_outperformance_rate  final_relative_wealth_multiple  positive_12m_windows  positive_24m_windows  positive_36m_windows  positive_60m_windows
-    102                     -0.199389                 2026-06-30                                               4                     0.529412                         1.94086              0.868132              0.987342                   1.0                   1.0
+    102                     -0.199389                 2026-06-30                                               4                     0.529412                        1.940861              0.868132              0.987342                   1.0                   1.0
 
 Rolling relative results:
  window_months  windows  outperformance_rate  median_compounded_excess  worst_compounded_excess  best_compounded_excess worst_window_end
             12       91             0.868132                  0.113143                -0.126951                0.398830       2025-12-31
-            24       79             0.987342                  0.291013                -0.055238                0.622820       2026-04-30
+            24       79             0.987342                  0.291013                -0.055238                0.622819       2026-04-30
             36       67             1.000000                  0.532203                 0.195458                0.943673       2026-06-30
-            60       43             1.000000                  1.351650                 0.734897                2.050396       2026-06-30
+            60       43             1.000000                  1.351649                 0.734897                2.050396       2026-06-30
 === research_static_cost.py ===
  cost_bps_per_dollar_traded     cagr  max_drawdown  spy_cagr  cagr_excess_vs_spy  avg_monthly_traded_notional  estimated_break_even_cost_bps_vs_spy_cagr
-                          0 0.244811     -0.203629  0.139625            0.105187                     0.871642                                  85.657369
-                          5 0.238437     -0.205728  0.139625            0.098813                     0.871642                                  85.657369
-                         10 0.232093     -0.207823  0.139625            0.092468                     0.871642                                  85.657369
-                         25 0.213236     -0.214080  0.139625            0.073612                     0.871642                                  85.657369
-                         50 0.182390     -0.224418  0.139625            0.042766                     0.871642                                  85.657369
-                        100 0.122822     -0.244762  0.139625           -0.016802                     0.871642                                  85.657369
+                          0 0.244811     -0.203629  0.139625            0.105187                     0.871642                                   85.65739
+                          5 0.238437     -0.205728  0.139625            0.098813                     0.871642                                   85.65739
+                         10 0.232093     -0.207823  0.139625            0.092468                     0.871642                                   85.65739
+                         25 0.213236     -0.214080  0.139625            0.073612                     0.871642                                   85.65739
+                         50 0.182390     -0.224418  0.139625            0.042766                     0.871642                                   85.65739
+                        100 0.122822     -0.244762  0.139625           -0.016802                     0.871642                                   85.65739

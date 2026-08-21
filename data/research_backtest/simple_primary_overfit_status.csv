@@ -1,2 +1,2 @@
 strategy,trial_ledger_floor,dsr_probability_at_ledger_floor,dsr_passes_95pct_at_ledger_floor,pbo_below_0_20_all_block_scenarios,research_statistical_gate,note
-hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed,22,0.47050511192365074,False,True,FAIL,Diagnostic only; correlated strategy trials make DSR approximate. Forward OOS remains the decisive validation path.
+hyp_static_neutral_no_growth_low_vol_n10_equal_reconstructed,22,0.46979256646564915,False,False,FAIL,Diagnostic only; correlated strategy trials make DSR approximate. Forward OOS remains the decisive validation path.
