@@ -74,6 +74,7 @@ jobs:
             python test_offline.py
             python backtest.py \
               --start 2018-01-01 \
+              --end 2026-07-31 \
               --portfolio-n 10 \
               --cost-bps 10 \
               --output-dir data/backtest
