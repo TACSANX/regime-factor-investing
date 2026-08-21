@@ -27,15 +27,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Mark run started
+      - name: Mark run started locally
         run: |
           mkdir -p data/backtest
           printf 'RUNNING\nrun_id=%s\nstarted_utc=%s\n' "${{ github.run_id }}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > data/backtest/status.txt
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/backtest/status.txt
-          git commit -m "data: mark historical backtest running"
-          git push origin HEAD:main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -105,8 +100,21 @@ jobs:
             echo "No backtest files to commit."
             exit 0
           fi
+
           git commit -m "data: update historical backtest results"
-          git push origin HEAD:main
+
+          for attempt in 1 2 3 4 5; do
+            echo "Publish attempt ${attempt}/5"
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 2))
+          done
+
+          echo "::error::Failed to publish backtest results after 5 attempts. Artifact remains available."
+          exit 1
 
       - name: Fail workflow if backtest failed
         if: steps.run-backtest.outcome == 'failure'
