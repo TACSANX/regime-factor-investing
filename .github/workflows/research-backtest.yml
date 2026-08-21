@@ -37,6 +37,7 @@ jobs:
           path: .cache_sp500_screener
           key: research-backtest-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
+            research-backtest-${{ runner.os }}-
             backtest-v2-${{ runner.os }}-
             backtest-${{ runner.os }}-
             screener-${{ runner.os }}-
@@ -46,7 +47,7 @@ jobs:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: |
           test -n "$SEC_USER_AGENT"
-          python -m py_compile screener.py backtest.py backtest_v2.py research_backtest.py portfolio_constraints.py
+          python -m py_compile screener.py backtest.py backtest_v2.py research_backtest.py research_candidates.py portfolio_constraints.py
           python test_offline.py
           python test_constraints.py
 
@@ -54,7 +55,7 @@ jobs:
         env:
           SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
         run: |
-          python research_backtest.py \
+          python research_candidates.py \
             --start 2018-01-01 \
             --end 2026-07-31 \
             --cost-bps 10 \
