@@ -4,6 +4,9 @@ on:
   push:
     paths:
       - ".github/workflows/research-overfit.yml"
+      - "research_overfit.py"
+      - "data/research_backtest/monthly.csv"
+      - "data/research_backtest/strategy_specs.csv"
   workflow_dispatch:
 
 permissions:
