@@ -1,0 +1,9 @@
+assumption,value
+universe,Current S&P 500 constituents; survivorship bias remains
+signal,Month-end close/volume; signal computed after close
+execution,Next trading session adjusted open; removes same-close execution bias
+fundamental_timing,Only SEC facts filed on/before signal date; snapshots change only on filing dates
+macro_timing,"Reference-date lags: {'sahm': 38, 'curve_10y3m': 1, 'hy_oas': 1, 'nfci': 7, 'real10y': 1, 'fedfunds': 1, 'unrate': 38, 'cpi': 45, 'cfnai': 60}"
+transaction_cost,"10.0 bps per dollar traded; initial=1x NAV, later traded_notional=2*half-L1 turnover"
+portfolio_constraints,"strict max stock=12.0%, max sector=30.0%"
+known_bias,Latest-vintage FRED revision bias remains; historical constituent bias remains
