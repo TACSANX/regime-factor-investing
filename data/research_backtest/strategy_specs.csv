@@ -1,0 +1,15 @@
+strategy,score_variant,n,allocation,category
+full_dynamic_n10_invvol,full_dynamic,10,invvol,base
+full_dynamic_n10_equal,full_dynamic,10,equal,allocation
+full_dynamic_n10_score,full_dynamic,10,score,allocation
+full_dynamic_n5_invvol,full_dynamic,5,invvol,breadth
+full_dynamic_n20_invvol,full_dynamic,20,invvol,breadth
+full_dynamic_strict_12_30,full_dynamic,10,strict,constraint_baseline
+static_neutral_n10_invvol,static_neutral,10,invvol,macro_ablation
+dynamic_no_macro_sector_n10,dynamic_no_macro_sector,10,invvol,macro_ablation
+no_sector_rotation_n10,no_sector_rotation,10,invvol,factor_ablation
+no_momentum_n10,no_momentum,10,invvol,factor_ablation
+no_quality_n10,no_quality,10,invvol,factor_ablation
+no_value_n10,no_value,10,invvol,factor_ablation
+no_growth_n10,no_growth,10,invvol,factor_ablation
+no_low_vol_n10,no_low_vol,10,invvol,factor_ablation

@@ -1,0 +1,10 @@
+assumption,value
+universe,Current S&P 500 constituents; survivorship bias remains until historical-universe price coverage is resolved
+signal,"Month-end close/volume, computed after close"
+execution,Next trading-session adjusted open
+fundamentals,SEC facts filed on/before signal date only
+macro,"Point-in-time proxy lags {'sahm': 38, 'curve_10y3m': 1, 'hy_oas': 1, 'nfci': 7, 'real10y': 1, 'fedfunds': 1, 'unrate': 38, 'cpi': 45, 'cfnai': 60}; latest-vintage FRED revision bias remains"
+base_allocation,"Top 10, inverse-volatility x score, NO stock or sector hard cap"
+constraint_baseline,Separate comparison strategy keeps 12% stock / 30% sector caps
+cost,10.0 bps per dollar traded; sensitivity also reported at 0/5/10/25/50/100 bps
+research_warning,"Ablations are diagnostic, not a license to select the best in-sample variant; confirmation requires historical constituents and out-of-sample testing"
