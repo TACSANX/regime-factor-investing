@@ -1,0 +1,2 @@
+checks,official_urls_reachable,hans_pass_rate,pierre_pass_rate,both_pass_rate,all_checks_pass,scope_note
+9,8,0.4444444444444444,1.0,0.4444444444444444,False,Curated official S&P Global spot checks only; not a complete membership-history certification.
