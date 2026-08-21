@@ -1,0 +1,10 @@
+effective_date,added,deleted,added_absent_pre,added_present_post,deleted_present_pre,deleted_absent_post,pass,source
+2018-05-31,ABMD,WYN,True,True,False,True,False,https://press.spglobal.com/2018-05-25-ABIOMED-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600
+2018-12-03,LW,COL,True,True,False,True,False,https://press.spglobal.com/2018-11-26-Lamb-Weston-Holdings-Maxim-Integrated-Products-and-Diamondback-Energy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600
+2018-12-03,MXIM,AET,True,True,False,True,False,https://press.spglobal.com/2018-11-26-Lamb-Weston-Holdings-Maxim-Integrated-Products-and-Diamondback-Energy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600
+2020-10-07,POOL,ETFC,True,True,True,True,True,https://www.spglobal.com/spdji/en/documents/indexnews/announcements/20201001-1231161/1231161_dlph400etfc500.pdf
+2022-02-03,CEG,GPS,False,True,True,True,False,https://press.spglobal.com/2022-01-26-Constellation-Energy-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600
+2023-03-15,PODD,SIVB,True,True,True,True,True,https://press.spglobal.com/2023-03-10-Insulet-Set-to-Join-S-P-500
+2023-03-15,BG,SBNY,True,True,True,True,True,https://press.spglobal.com/2023-03-13-Bunge-Set-to-Join-S-P-500
+2023-10-18,LULU,ATVI,True,True,True,True,True,https://press.spglobal.com/2023-10-13-Lululemon-Athletica-Hubbell-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600
+2023-10-18,HUBB,OGN,True,True,True,True,True,https://press.spglobal.com/2023-10-13-Lululemon-Athletica-Hubbell-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600

@@ -1,0 +1,2 @@
+official_event_checks,official_event_passes,official_event_pass_rate,months_compared,mean_jaccard_vs_pierre,median_jaccard_vs_pierre,min_jaccard_vs_pierre,months_ge_99pct,pitindex_data_age_days,pitindex_is_stale,pitindex_reconciliation_diff_ratio,candidate_for_primary_pit_universe,note
+9,5,0.5555555555555556,100,0.9433228794131564,0.9422521120498,0.8899253731343284,3,38,True,,False,Research audit only. Passing does not validate delisted price coverage or historical GICS metadata.
