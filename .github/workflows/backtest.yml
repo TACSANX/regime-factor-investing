@@ -47,21 +47,7 @@ jobs:
             backtest-${{ runner.os }}-
             screener-${{ runner.os }}-
 
-      - name: Validate SEC user agent
-        env:
-          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
-        run: |
-          if [ -z "$SEC_USER_AGENT" ]; then
-            echo "::error::SEC_USER_AGENT repository secret is required."
-            exit 1
-          fi
-
-      - name: Compile and test
-        run: |
-          python -m py_compile screener.py backtest.py
-          python test_offline.py
-
-      - name: Run backtest
+      - name: Run diagnostics and backtest
         id: run-backtest
         continue-on-error: true
         env:
@@ -69,11 +55,19 @@ jobs:
         run: |
           mkdir -p data/backtest
           set +e
-          python backtest.py \
-            --start 2018-01-01 \
-            --portfolio-n 10 \
-            --cost-bps 10 \
-            --output-dir data/backtest 2>&1 | tee data/backtest/run.log
+          (
+            if [ -z "$SEC_USER_AGENT" ]; then
+              echo "SEC_USER_AGENT repository secret is missing."
+              exit 20
+            fi
+            python -m py_compile screener.py backtest.py
+            python test_offline.py
+            python backtest.py \
+              --start 2018-01-01 \
+              --portfolio-n 10 \
+              --cost-bps 10 \
+              --output-dir data/backtest
+          ) 2>&1 | tee data/backtest/run.log
           code=${PIPESTATUS[0]}
           echo "$code" > data/backtest/exit_code.txt
           exit "$code"
@@ -91,6 +85,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p data/backtest
           git add -A -- data/backtest
           if git diff --cached --quiet; then
             echo "No backtest files to commit."
