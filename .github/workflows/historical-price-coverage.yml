@@ -16,7 +16,7 @@ concurrency:
 jobs:
   coverage:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -24,14 +24,20 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install -r requirements.txt
+      - run: python -m py_compile historical_price_coverage.py
       - run: python historical_price_coverage.py
       - name: Publish coverage
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- data/research/historical_price_coverage.csv data/research/historical_price_missing.csv data/research/historical_price_missing_summary.csv data/research/historical_price_coverage_summary.csv
+          git add -- \
+            data/research/historical_price_coverage.csv \
+            data/research/historical_price_missing.csv \
+            data/research/historical_price_missing_summary.csv \
+            data/research/historical_price_download_failures.csv \
+            data/research/historical_price_coverage_summary.csv
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "data: measure historical Yahoo price coverage"
+          git commit -m "data: remeasure historical Yahoo price coverage"
           for attempt in 1 2 3 4 5; do
             git fetch origin main
             git rebase origin/main
